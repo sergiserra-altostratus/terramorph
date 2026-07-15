@@ -1,0 +1,33 @@
+resource "google_sql_database_instance" "{{ resource.terraform_resource_name }}" {
+  name             = "{{ resource.name }}"
+  project          = "{{ resource.project }}"
+  region           = "{{ attrs.region }}"
+  database_version = "{{ attrs.database_version }}"
+
+  settings {
+    tier              = "{{ attrs.tier }}"
+    availability_type = "{{ attrs.availability_type }}"
+    disk_size         = {{ attrs.disk_size }}
+    disk_type         = "{{ attrs.disk_type }}"
+
+{% if attrs.backup_enabled %}
+    backup_configuration {
+      enabled = true
+    }
+{% endif %}
+
+    ip_configuration {
+      ipv4_enabled = {{ attrs.ipv4_enabled | lower }}
+    }
+
+{% if attrs.labels %}
+    user_labels = {
+{% for key, value in attrs.labels.items() %}
+      {{ key }} = "{{ value }}"
+{% endfor %}
+    }
+{% endif %}
+  }
+
+  deletion_protection = false
+}

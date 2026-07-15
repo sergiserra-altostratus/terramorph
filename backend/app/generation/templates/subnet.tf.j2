@@ -1,0 +1,18 @@
+resource "google_compute_subnetwork" "{{ resource.terraform_resource_name }}" {
+  name                     = "{{ resource.name }}"
+  project                  = "{{ resource.project }}"
+  region                   = "{{ attrs.region }}"
+  network                  = "{{ attrs.network }}"
+  ip_cidr_range            = "{{ attrs.ip_cidr_range }}"
+  private_ip_google_access = {{ attrs.private_ip_google_access | lower }}
+{% if attrs.purpose and attrs.purpose != "PRIVATE" %}
+  purpose                  = "{{ attrs.purpose }}"
+{% endif %}
+
+{% for range in attrs.secondary_ip_ranges %}
+  secondary_ip_range {
+    range_name    = "{{ range.range_name }}"
+    ip_cidr_range = "{{ range.ip_cidr_range }}"
+  }
+{% endfor %}
+}

@@ -1,0 +1,48 @@
+resource "google_compute_instance" "{{ resource.terraform_resource_name }}" {
+  name         = "{{ resource.name }}"
+  machine_type = "{{ attrs.machine_type }}"
+  zone         = "{{ attrs.zone }}"
+  project      = "{{ resource.project }}"
+
+{% for disk in attrs.disks %}
+{% if disk.boot %}
+  boot_disk {
+    auto_delete = {{ disk.auto_delete | lower }}
+    initialize_params {
+      image = "{{ disk.source }}"
+    }
+  }
+{% else %}
+  attached_disk {
+    source = "{{ disk.source }}"
+  }
+{% endif %}
+{% endfor %}
+
+{% for ni in attrs.network_interfaces %}
+  network_interface {
+    network    = "{{ ni.network }}"
+    subnetwork = "{{ ni.subnetwork }}"
+  }
+{% endfor %}
+
+{% if attrs.tags %}
+  tags = [{% for tag in attrs.tags %}"{{ tag }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+
+{% if attrs.metadata %}
+  metadata = {
+{% for key, value in attrs.metadata.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

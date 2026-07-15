@@ -1,0 +1,46 @@
+resource "google_container_cluster" "{{ resource.terraform_resource_name }}" {
+  name     = "{{ resource.name }}"
+  project  = "{{ resource.project }}"
+  location = "{{ attrs.location }}"
+
+  network    = "{{ attrs.network }}"
+  subnetwork = "{{ attrs.subnetwork }}"
+
+{% if attrs.enable_autopilot %}
+  enable_autopilot = true
+{% else %}
+  initial_node_count       = {{ attrs.initial_node_count }}
+  remove_default_node_pool = true
+{% endif %}
+
+{% if attrs.cluster_ipv4_cidr %}
+  cluster_ipv4_cidr = "{{ attrs.cluster_ipv4_cidr }}"
+{% endif %}
+
+  deletion_protection = {{ attrs.deletion_protection | lower }}
+
+{% if attrs.labels %}
+  resource_labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}
+
+{% if not attrs.enable_autopilot %}
+{% for pool in attrs.node_pools %}
+resource "google_container_node_pool" "{{ resource.terraform_resource_name }}_{{ pool.name | replace('-', '_') }}" {
+  name       = "{{ pool.name }}"
+  project    = "{{ resource.project }}"
+  location   = "{{ attrs.location }}"
+  cluster    = google_container_cluster.{{ resource.terraform_resource_name }}.name
+  node_count = {{ pool.node_count }}
+
+  node_config {
+    machine_type = "{{ pool.machine_type }}"
+    disk_size_gb = {{ pool.disk_size_gb }}
+  }
+}
+{% endfor %}
+{% endif %}

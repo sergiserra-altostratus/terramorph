@@ -1,0 +1,16 @@
+[project]
+name = "terramorph-backend"
+version = "0.1.0"
+description = "Terramorph Backend API - Reverse Terraform for GCP"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

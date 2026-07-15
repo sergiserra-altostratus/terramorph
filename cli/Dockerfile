@@ -1,0 +1,13 @@
+# ---- Build Stage ----
+FROM rust:1.79-slim AS builder
+WORKDIR /build
+RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+COPY Cargo.toml Cargo.lock* ./
+COPY src/ ./src/
+RUN cargo build --release
+
+# ---- Runtime Stage ----
+FROM debian:bookworm-slim AS production
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /build/target/release/terramorph /usr/local/bin/terramorph
+ENTRYPOINT ["terramorph"]

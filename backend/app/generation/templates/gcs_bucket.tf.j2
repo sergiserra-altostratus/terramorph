@@ -1,0 +1,41 @@
+resource "google_storage_bucket" "{{ resource.terraform_resource_name }}" {
+  name          = "{{ resource.name }}"
+  project       = "{{ resource.project }}"
+  location      = "{{ attrs.location }}"
+  storage_class = "{{ attrs.storage_class }}"
+  force_destroy = {{ attrs.force_destroy | lower }}
+
+{% if attrs.versioning_enabled %}
+  versioning {
+    enabled = true
+  }
+{% endif %}
+
+{% if attrs.uniform_bucket_level_access %}
+  uniform_bucket_level_access = true
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+
+{% for rule in attrs.lifecycle_rules %}
+  lifecycle_rule {
+    action {
+      type = "{{ rule.action.get('type', 'Delete') }}"
+    }
+    condition {
+{% if rule.condition.get('age') %}
+      age = {{ rule.condition.age }}
+{% endif %}
+{% if rule.condition.get('created_before') %}
+      created_before = "{{ rule.condition.created_before }}"
+{% endif %}
+    }
+  }
+{% endfor %}
+}

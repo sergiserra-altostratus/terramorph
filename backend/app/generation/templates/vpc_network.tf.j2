@@ -1,0 +1,12 @@
+resource "google_compute_network" "{{ resource.terraform_resource_name }}" {
+  name                    = "{{ resource.name }}"
+  project                 = "{{ resource.project }}"
+  auto_create_subnetworks = {{ attrs.auto_create_subnetworks | lower }}
+  routing_mode            = "{{ attrs.routing_mode }}"
+{% if attrs.mtu and attrs.mtu != 1460 %}
+  mtu                     = {{ attrs.mtu }}
+{% endif %}
+{% if attrs.description %}
+  description             = "{{ attrs.description }}"
+{% endif %}
+}
