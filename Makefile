@@ -1,35 +1,47 @@
-.PHONY: dev prod build-cli clean lint-backend lint-frontend test-backend test-frontend help
+.PHONY: up down build clean logs cli help
 
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+help: ## Show available commands
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-dev: ## Start development environment with hot-reload
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-
-prod: ## Start production environment
+up: ## Start Terramorph (development mode)
 	docker compose up --build -d
+	@echo ""
+	@echo "✓ Terramorph is running:"
+	@echo "  Frontend → http://localhost:$${FRONTEND_PORT:-3000}"
+	@echo "  Backend  → http://localhost:$${BACKEND_PORT:-8001}/docs"
+	@echo ""
 
-build-cli: ## Build CLI binary (requires Rust toolchain)
+down: ## Stop Terramorph
+	docker compose down
+
+prod: ## Start in production mode
+	DOCKER_TARGET=production TERRAMORPH_ENV=production TERRAMORPH_LOG_LEVEL=info docker compose up --build -d
+
+logs: ## View logs (all services)
+	docker compose logs -f
+
+logs-backend: ## View backend logs only
+	docker compose logs -f backend
+
+logs-frontend: ## View frontend logs only
+	docker compose logs -f frontend
+
+restart: ## Restart all services
+	docker compose restart
+
+build: ## Build without starting
+	docker compose build
+
+clean: ## Stop and remove all containers, volumes, images
+	docker compose down -v --rmi local
+	@echo "✓ Cleaned up"
+
+cli: ## Build CLI binary (requires Rust toolchain)
 	cd cli && cargo build --release
+	@echo "✓ CLI built at ./cli/target/release/terramorph"
 
-clean: ## Stop containers and clean build artifacts
-	docker compose down -v
-	cd cli && cargo clean 2>/dev/null || true
+test: ## Run backend tests
+	cd backend && pip install -r requirements.txt -q && pytest tests/ -v
 
-lint-backend: ## Run backend linter
+lint: ## Lint backend code
 	cd backend && ruff check app/
-
-lint-frontend: ## Run frontend linter
-	cd frontend && npm run lint
-
-test-backend: ## Run backend tests
-	cd backend && pytest tests/ -v
-
-test-frontend: ## Run frontend tests
-	cd frontend && npm test
-
-install-backend: ## Install backend dependencies locally
-	cd backend && pip install -r requirements.txt
-
-install-frontend: ## Install frontend dependencies locally
-	cd frontend && npm install

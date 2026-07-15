@@ -1,20 +1,19 @@
-version: "3.9"
-
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: production
+      target: ${DOCKER_TARGET:-development}
     ports:
-      - "8001:8000"
+      - "${BACKEND_PORT:-8001}:8000"
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/credentials/adc.json
-      - TERRAMORPH_ENV=production
-      - TERRAMORPH_LOG_LEVEL=info
-      - CORS_ORIGINS=http://localhost:3000
+      - TERRAMORPH_ENV=${TERRAMORPH_ENV:-development}
+      - TERRAMORPH_LOG_LEVEL=${TERRAMORPH_LOG_LEVEL:-debug}
+      - CORS_ORIGINS=http://localhost:${FRONTEND_PORT:-3000}
     volumes:
       - ${GOOGLE_APPLICATION_CREDENTIALS:-~/.config/gcloud/application_default_credentials.json}:/credentials/adc.json:ro
+      - ./backend/app:/app/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s
@@ -26,11 +25,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: production
+      target: ${DOCKER_TARGET:-development}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8001/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT:-8001}/api/v1
     depends_on:
       backend:
         condition: service_healthy
