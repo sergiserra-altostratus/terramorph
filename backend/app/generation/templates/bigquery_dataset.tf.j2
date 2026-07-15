@@ -1,0 +1,22 @@
+resource "google_bigquery_dataset" "{{ resource.terraform_resource_name }}" {
+  project    = "{{ resource.project }}"
+  dataset_id = "{{ attrs.dataset_id }}"
+  location   = "{{ attrs.location }}"
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+{% if attrs.default_table_expiration_ms %}
+  default_table_expiration_ms = {{ attrs.default_table_expiration_ms }}
+{% endif %}
+{% if attrs.default_partition_expiration_ms %}
+  default_partition_expiration_ms = {{ attrs.default_partition_expiration_ms }}
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

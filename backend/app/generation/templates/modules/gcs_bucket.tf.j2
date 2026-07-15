@@ -1,0 +1,24 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/cloud-storage/google"
+  version = "~> 6.0"
+
+  project_id = "{{ resource.project }}"
+  names      = ["{{ resource.name }}"]
+  prefix     = ""
+
+  location      = "{{ attrs.location }}"
+  storage_class = "{{ attrs.storage_class }}"
+  force_destroy = {{ attrs.force_destroy | lower }}
+
+  versioning = {
+    "{{ resource.name }}" = {{ attrs.versioning_enabled | lower }}
+  }
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

@@ -1,0 +1,20 @@
+resource "google_project_iam_binding" "{{ resource.terraform_resource_name }}" {
+  project = "{{ attrs.project }}"
+  role    = "{{ attrs.role }}"
+
+  members = [
+{% for member in attrs.members %}
+    "{{ member }}",
+{% endfor %}
+  ]
+
+{% if attrs.condition %}
+  condition {
+    title       = "{{ attrs.condition.title }}"
+{% if attrs.condition.description %}
+    description = "{{ attrs.condition.description }}"
+{% endif %}
+    expression  = "{{ attrs.condition.expression }}"
+  }
+{% endif %}
+}

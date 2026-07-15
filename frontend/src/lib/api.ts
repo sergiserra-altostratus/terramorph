@@ -6,6 +6,17 @@ export interface HealthResponse {
   gcp_authenticated: boolean;
 }
 
+export interface UsageStats {
+  by_resource_type: Record<string, number>;
+  total_generated: number;
+  total_jobs: number;
+  recent_jobs: Array<{
+    timestamp: string;
+    total_resources: number;
+    types: Record<string, number>;
+  }>;
+}
+
 export interface AuthStatus {
   authenticated: boolean;
   project: string | null;
@@ -79,6 +90,7 @@ export interface GenerationRequest {
     include_provider_block: boolean;
     include_import_script: boolean;
     output_format: "single_file" | "per_resource_type";
+    generation_style: "flat" | "module";
     backend_state?: {
       bucket: string;
       prefix: string;
@@ -118,6 +130,10 @@ class ApiClient {
 
   async getHealth(): Promise<HealthResponse> {
     return this.request("/health");
+  }
+
+  async getStats(): Promise<UsageStats> {
+    return this.request("/stats");
   }
 
   async getAuthStatus(): Promise<AuthStatus> {

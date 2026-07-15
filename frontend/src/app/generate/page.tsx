@@ -1,12 +1,113 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Code, Download, Copy, Check, FileText, Play, Database } from "lucide-react";
+import { Code, Download, Copy, Check, FileText, Sparkles, Database, FileCode } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import type { GenerationResult } from "@/lib/api";
 
+function Loader2Icon({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+function highlightTerraform(content: string): JSX.Element[] {
+  const lines = content.split("\n");
+  return lines.map((line, idx) => {
+    let highlighted = line;
+
+    // Comments
+    if (line.trim().startsWith("#") || line.trim().startsWith("//")) {
+      return (
+        <div key={idx} className="flex">
+          <span className="select-none w-8 text-right text-gray-300 dark:text-gray-600 mr-4 text-[12px]">
+            {idx + 1}
+          </span>
+          <span className="text-gray-400 dark:text-gray-500 italic">{line}</span>
+        </div>
+      );
+    }
+
+    // Build highlighted spans
+    const parts: JSX.Element[] = [];
+    let remaining = line;
+    let partKey = 0;
+
+    // Match keywords at start
+    const keywordMatch = remaining.match(/^(\s*)(resource|data|variable|output|locals|module|provider|terraform)(\s)/);
+    if (keywordMatch) {
+      parts.push(<span key={partKey++}>{keywordMatch[1]}</span>);
+      parts.push(<span key={partKey++} className="text-violet-600 dark:text-violet-400">{keywordMatch[2]}</span>);
+      remaining = remaining.slice(keywordMatch[0].length - 1);
+    }
+
+    // Simple token-based highlighting for remaining content
+    const tokens = remaining.split(/("(?:[^"\\]|\\.)*")/);
+    tokens.forEach((token, tIdx) => {
+      if (token.startsWith('"') && token.endsWith('"')) {
+        // String literals
+        parts.push(
+          <span key={partKey++} className="text-emerald-600 dark:text-emerald-400">{token}</span>
+        );
+      } else {
+        // Check for = sign, numbers, booleans
+        const subTokens = token.split(/(\b(?:true|false|null)\b|\b\d+\b|[{}[\]=])/);
+        subTokens.forEach((sub, sIdx) => {
+          if (sub === "true" || sub === "false" || sub === "null") {
+            parts.push(<span key={partKey++} className="text-amber-600 dark:text-amber-400">{sub}</span>);
+          } else if (/^\d+$/.test(sub)) {
+            parts.push(<span key={partKey++} className="text-sky-600 dark:text-sky-400">{sub}</span>);
+          } else if (sub === "{" || sub === "}" || sub === "[" || sub === "]") {
+            parts.push(<span key={partKey++} className="text-gray-500 dark:text-gray-400">{sub}</span>);
+          } else if (sub === "=") {
+            parts.push(<span key={partKey++} className="text-gray-400 dark:text-gray-500">{sub}</span>);
+          } else {
+            parts.push(<span key={partKey++} className="text-gray-900 dark:text-gray-200">{sub}</span>);
+          }
+        });
+      }
+    });
+
+    return (
+      <div key={idx} className="flex hover:bg-gray-50 dark:hover:bg-white/[0.02] -mx-4 px-4 transition-colors">
+        <span className="select-none w-8 text-right text-gray-300 dark:text-gray-600 mr-4 text-[12px]">
+          {idx + 1}
+        </span>
+        <span>{parts}</span>
+      </div>
+    );
+  });
+}
+
 export default function GeneratePage() {
+  return (
+    <Suspense fallback={
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+            <Code className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white">
+              Generate Terraform
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-10 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        </div>
+      </div>
+    }>
+      <GeneratePageContent />
+    </Suspense>
+  );
+}
+
+function GeneratePageContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("job_id");
   const [result, setResult] = useState<GenerationResult | null>(null);
@@ -14,69 +115,62 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  // Backend state config
   const [stateBucket, setStateBucket] = useState("");
   const [statePrefix, setStatePrefix] = useState("terraform/state");
-
-  // Output format
-  const [outputFormat, setOutputFormat] = useState<"single_file" | "per_resource_type">(
-    "per_resource_type"
-  );
+  const [outputFormat, setOutputFormat] = useState<"single_file" | "per_resource_type">("per_resource_type");
+  const [generationStyle, setGenerationStyle] = useState<"flat" | "module">("flat");
 
   const generate = async () => {
     if (!jobId) return;
-    setLoading(true);
-    setError(null);
-
+    setLoading(true); setError(null);
     try {
-      const genResult = await apiClient.generateTerraform({
+      const r = await apiClient.generateTerraform({
         job_id: jobId,
         resource_ids: ["all"],
         options: {
           include_provider_block: true,
           include_import_script: true,
           output_format: outputFormat,
-          backend_state: stateBucket.trim()
-            ? { bucket: stateBucket.trim(), prefix: statePrefix.trim() }
-            : undefined,
+          generation_style: generationStyle,
+          backend_state: stateBucket.trim() ? { bucket: stateBucket.trim(), prefix: statePrefix.trim() } : undefined,
         },
       });
-      setResult(genResult);
-      if (genResult.files.length > 0) setActiveFile(genResult.files[0].filename);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Generation failed");
-    } finally {
-      setLoading(false);
-    }
+      setResult(r);
+      if (r.files.length > 0) setActiveFile(r.files[0].filename);
+    } catch (e) { setError(e instanceof Error ? e.message : "Generation failed"); }
+    finally { setLoading(false); }
   };
 
-  const activeContent =
-    result?.files.find((f) => f.filename === activeFile)?.content || "";
-
+  const activeContent = result?.files.find((f) => f.filename === activeFile)?.content || "";
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(activeContent);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
 
   if (!jobId) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Generate Terraform</h1>
-          <p className="text-muted-foreground">
-            Generate Terraform code from discovered resources.
-          </p>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+            <Code className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white">
+              Generate Terraform
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Generate Terraform code from discovered resources.</p>
+          </div>
         </div>
-        <div className="rounded-lg border bg-card p-8 text-center">
-          <Code className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">
-            No discovery results selected. Go to{" "}
-            <a href="/discover" className="text-primary underline">
-              Discover
-            </a>{" "}
-            first.
+        {/* Empty state */}
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-12 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-white/[0.04] mb-4">
+            <Code className="h-7 w-7 text-gray-300 dark:text-gray-600" />
+          </div>
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No discovery results selected</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Go to{" "}
+            <a href="/discover" className="text-indigo-500 font-medium hover:text-indigo-600 transition-colors">Discover</a>{" "}
+            first to scan your infrastructure.
           </p>
         </div>
       </div>
@@ -84,32 +178,33 @@ export default function GeneratePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Generate Terraform</h1>
-        <p className="text-muted-foreground">
-          Configure generation options and generate Terraform code.
-        </p>
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+          <Code className="h-4 w-4 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white">
+            Generate Terraform
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Configure options and generate IaC code.</p>
+        </div>
       </div>
 
-      {/* Generation Options */}
-      <div className="rounded-lg border bg-card p-6 space-y-4">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Database className="h-4 w-4" />
+      {/* Options */}
+      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+          <Database className="h-3.5 w-3.5" />
           Generation Options
         </h3>
 
-        {/* Output Format */}
         <div>
-          <label className="block text-xs text-muted-foreground mb-1.5">
-            Output Format
-          </label>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Output Format</label>
           <select
             value={outputFormat}
-            onChange={(e) =>
-              setOutputFormat(e.target.value as "single_file" | "per_resource_type")
-            }
-            className="w-full max-w-xs rounded-md border bg-background px-3 py-2 text-sm"
+            onChange={(e) => setOutputFormat(e.target.value as "single_file" | "per_resource_type")}
+            className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
             disabled={loading}
           >
             <option value="per_resource_type">One file per resource type</option>
@@ -117,131 +212,145 @@ export default function GeneratePage() {
           </select>
         </div>
 
-        {/* Backend State Configuration */}
-        <div className="border-t pt-4">
-          <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Generation Style</label>
+          <select
+            value={generationStyle}
+            onChange={(e) => setGenerationStyle(e.target.value as "flat" | "module")}
+            className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+            disabled={loading}
+          >
+            <option value="flat">Flat Resources (resource blocks)</option>
+            <option value="module">Modules (official Google Cloud modules)</option>
+          </select>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">
+            {generationStyle === "flat"
+              ? "Generates standard resource blocks — full control over every attribute."
+              : "Uses official terraform-google-modules from the Terraform Registry — best practices baked in."}
+          </p>
+        </div>
+
+        {/* Backend State */}
+        <div className="border-t border-gray-100 dark:border-white/[0.04] pt-5">
+          <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">
             Remote State (GCS Backend)
           </h4>
-          <p className="text-xs text-muted-foreground mb-3">
-            Optional. If provided, a <code className="rounded bg-muted px-1 py-0.5">backend.tf</code> file
-            will be generated to store Terraform state remotely in a GCS bucket.
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
+            Optional. Generates a <code className="rounded-md bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 font-mono text-gray-600 dark:text-gray-300">backend.tf</code> for remote state storage.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-muted-foreground mb-1.5">
-                Bucket Name
-              </label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Bucket Name</label>
               <input
-                type="text"
-                value={stateBucket}
-                onChange={(e) => setStateBucket(e.target.value)}
+                type="text" value={stateBucket} onChange={(e) => setStateBucket(e.target.value)}
                 placeholder="my-terraform-state-bucket"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
                 disabled={loading}
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground mb-1.5">
-                Prefix (path)
-              </label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Prefix (path)</label>
               <input
-                type="text"
-                value={statePrefix}
-                onChange={(e) => setStatePrefix(e.target.value)}
-                placeholder="terraform/state/pro"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                type="text" value={statePrefix} onChange={(e) => setStatePrefix(e.target.value)}
+                placeholder="terraform/state/prod"
+                className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
                 disabled={loading}
               />
             </div>
           </div>
         </div>
 
-        {/* Generate Button */}
         <button
-          onClick={generate}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          onClick={generate} disabled={loading}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
         >
-          {loading ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
+          {loading ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {loading ? "Generating..." : "Generate Terraform"}
         </button>
       </div>
 
-      {/* Error */}
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="rounded-xl border border-rose-200/60 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-4 animate-slide-up">
+          <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
         </div>
       )}
 
-      {/* Results */}
+      {loading && (
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-10 text-center animate-slide-up">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent mb-4" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Generating Terraform code...</p>
+        </div>
+      )}
+
       {result && (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Generated {result.total_resources} resources across{" "}
-              {result.files.length} files
+          <div className="flex items-center justify-between animate-slide-up">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Generated <span className="font-semibold text-gray-900 dark:text-white">{result.total_resources}</span> resources across{" "}
+              <span className="font-semibold text-gray-900 dark:text-white">{result.files.length}</span> files
             </p>
             <a
               href={apiClient.getDownloadUrl(jobId)}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-150"
             >
               <Download className="h-4 w-4" />
               Download ZIP
             </a>
           </div>
 
-          <div className="grid grid-cols-12 gap-4 h-[calc(100vh-520px)]">
+          <div className="grid grid-cols-12 gap-4 h-[calc(100vh-520px)] animate-slide-up">
             {/* File List */}
-            <div className="col-span-3 rounded-lg border bg-card overflow-y-auto">
-              <div className="p-3 border-b">
-                <h3 className="text-xs font-medium text-muted-foreground uppercase">
-                  Files
-                </h3>
+            <div className="col-span-3 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-y-auto">
+              <div className="p-3 border-b border-gray-100 dark:border-white/[0.04]">
+                <h3 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Files</h3>
               </div>
-              <div className="p-2 space-y-1">
+              <div className="p-2 space-y-0.5">
                 {result.files.map((file) => (
                   <button
                     key={file.filename}
                     onClick={() => setActiveFile(file.filename)}
-                    className={`w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-left transition-colors ${
+                    className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-all duration-150 ${
                       activeFile === file.filename
-                        ? "bg-secondary text-secondary-foreground"
-                        : "text-muted-foreground hover:bg-accent"
+                        ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/[0.03] hover:text-gray-900 dark:hover:text-gray-200"
                     }`}
                   >
                     <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{file.filename}</span>
+                    <span className="truncate font-mono text-xs">{file.filename}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Code Preview */}
-            <div className="col-span-9 rounded-lg border bg-card flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between border-b px-4 py-2">
-                <span className="text-sm font-mono text-muted-foreground">
-                  {activeFile}
-                </span>
-                <button
-                  onClick={copyToClipboard}
-                  className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs hover:bg-accent transition-colors"
-                >
-                  {copied ? (
-                    <Check className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                  {copied ? "Copied" : "Copy"}
-                </button>
+            {/* Code Preview — premium IDE style */}
+            <div className="col-span-9 rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#111111] overflow-hidden shadow-sm flex flex-col">
+              {/* Code header — file tab style */}
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
+                <div className="flex items-center gap-2">
+                  <FileCode className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{activeFile}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={copyToClipboard}
+                    className="px-2.5 py-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors inline-flex items-center gap-1"
+                  >
+                    {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    {copied ? "Copied!" : "Copy"}
+                  </button>
+                  <a
+                    href={apiClient.getDownloadUrl(jobId)}
+                    className="px-2.5 py-1 text-[11px] font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
+                  >
+                    Download
+                  </a>
+                </div>
               </div>
-              <pre className="flex-1 overflow-auto p-4 text-xs font-mono leading-relaxed bg-muted/30">
-                <code>{activeContent}</code>
-              </pre>
+
+              {/* Code body with syntax highlighting */}
+              <div className="flex-1 overflow-auto p-4 font-mono text-[13px] leading-6">
+                {highlightTerraform(activeContent)}
+              </div>
             </div>
           </div>
         </>

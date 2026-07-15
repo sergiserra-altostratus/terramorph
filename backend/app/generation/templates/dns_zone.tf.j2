@@ -1,0 +1,23 @@
+resource "google_dns_managed_zone" "{{ resource.terraform_resource_name }}" {
+  name        = "{{ resource.name }}"
+  project     = "{{ resource.project }}"
+  dns_name    = "{{ attrs.dns_name }}"
+  visibility  = "{{ attrs.visibility }}"
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+
+{% if attrs.dnssec_state != "off" %}
+  dnssec_config {
+    state = "{{ attrs.dnssec_state }}"
+  }
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

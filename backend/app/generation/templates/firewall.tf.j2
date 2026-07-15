@@ -1,0 +1,45 @@
+resource "google_compute_firewall" "{{ resource.terraform_resource_name }}" {
+  name    = "{{ resource.name }}"
+  project = "{{ resource.project }}"
+  network = "{{ attrs.network }}"
+
+  direction = "{{ attrs.direction }}"
+  priority  = {{ attrs.priority }}
+{% if attrs.disabled %}
+  disabled  = true
+{% endif %}
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+
+{% if attrs.source_ranges %}
+  source_ranges = [{% for r in attrs.source_ranges %}"{{ r }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% if attrs.destination_ranges %}
+  destination_ranges = [{% for r in attrs.destination_ranges %}"{{ r }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% if attrs.source_tags %}
+  source_tags = [{% for t in attrs.source_tags %}"{{ t }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+{% if attrs.target_tags %}
+  target_tags = [{% for t in attrs.target_tags %}"{{ t }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+
+{% for rule in attrs.allowed %}
+  allow {
+    protocol = "{{ rule.protocol }}"
+{% if rule.ports %}
+    ports    = [{% for p in rule.ports %}"{{ p }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+  }
+{% endfor %}
+
+{% for rule in attrs.denied %}
+  deny {
+    protocol = "{{ rule.protocol }}"
+{% if rule.ports %}
+    ports    = [{% for p in rule.ports %}"{{ p }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+  }
+{% endfor %}
+}

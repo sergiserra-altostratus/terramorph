@@ -1,0 +1,19 @@
+resource "google_spanner_instance" "{{ resource.terraform_resource_name }}" {
+  project      = "{{ resource.project }}"
+  name         = "{{ resource.name }}"
+  config       = "{{ attrs.config }}"
+  display_name = "{{ attrs.display_name }}"
+{% if attrs.num_nodes > 0 %}
+  num_nodes    = {{ attrs.num_nodes }}
+{% endif %}
+{% if attrs.processing_units > 0 %}
+  processing_units = {{ attrs.processing_units }}
+{% endif %}
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

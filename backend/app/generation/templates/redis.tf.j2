@@ -1,0 +1,32 @@
+resource "google_redis_instance" "{{ resource.terraform_resource_name }}" {
+  name           = "{{ resource.name }}"
+  project        = "{{ resource.project }}"
+  region         = "{{ attrs.region }}"
+  tier           = "{{ attrs.tier }}"
+  memory_size_gb = {{ attrs.memory_size_gb }}
+  redis_version  = "{{ attrs.redis_version }}"
+
+{% if attrs.display_name %}
+  display_name = "{{ attrs.display_name }}"
+{% endif %}
+{% if attrs.authorized_network %}
+  authorized_network = "{{ attrs.authorized_network }}"
+{% endif %}
+  connect_mode = "{{ attrs.connect_mode }}"
+
+{% if attrs.redis_configs %}
+  redis_configs = {
+{% for key, value in attrs.redis_configs.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

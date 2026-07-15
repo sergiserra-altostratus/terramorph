@@ -1,0 +1,30 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/vm/google//modules/compute_instance"
+  version = "~> 11.0"
+
+  hostname      = "{{ resource.name }}"
+  project_id    = "{{ resource.project }}"
+  zone          = "{{ attrs.zone }}"
+  machine_type  = "{{ attrs.machine_type }}"
+
+  network_interfaces = [
+{% for ni in attrs.network_interfaces %}
+    {
+      network    = "{{ ni.network }}"
+      subnetwork = "{{ ni.subnetwork }}"
+    },
+{% endfor %}
+  ]
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+
+{% if attrs.tags %}
+  tags = [{% for tag in attrs.tags %}"{{ tag }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+}

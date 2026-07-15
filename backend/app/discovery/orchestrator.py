@@ -9,11 +9,38 @@ from google.auth.credentials import Credentials
 
 from app.core.credentials import get_credentials
 from app.core.logging import get_logger
+from app.discovery.apigateway import APIGatewayDiscoverer
+from app.discovery.armor import CloudArmorDiscoverer
+from app.discovery.artifact_registry import ArtifactRegistryDiscoverer
+from app.discovery.bigquery import BigQueryDiscoverer
+from app.discovery.cloudrun import CloudRunDiscoverer
+from app.discovery.composer import ComposerDiscoverer
 from app.discovery.compute import ComputeDiscoverer
+from app.discovery.custom_roles import CustomRolesDiscoverer
+from app.discovery.dataflow import DataflowDiscoverer
+from app.discovery.dns import CloudDNSDiscoverer
+from app.discovery.filestore import FilestoreDiscoverer
+from app.discovery.firewall import FirewallDiscoverer
+from app.discovery.functions import CloudFunctionsDiscoverer
 from app.discovery.gke import GKEDiscoverer
+from app.discovery.iam import IAMServiceAccountDiscoverer
+from app.discovery.iam_bindings import IAMBindingsDiscoverer
+from app.discovery.kms import CloudKMSDiscoverer
+from app.discovery.loadbalancer import LoadBalancerDiscoverer
+from app.discovery.logging_sinks import LoggingSinksDiscoverer
+from app.discovery.monitoring import MonitoringAlertsDiscoverer
+from app.discovery.nat import CloudNATDiscoverer
 from app.discovery.network import NetworkDiscoverer
+from app.discovery.pubsub import PubSubDiscoverer
+from app.discovery.redis import MemorystoreDiscoverer
+from app.discovery.scheduler import CloudSchedulerDiscoverer
+from app.discovery.secrets import SecretManagerDiscoverer
+from app.discovery.spanner import SpannerDiscoverer
 from app.discovery.sql import CloudSQLDiscoverer
+from app.discovery.static_ip import StaticIPDiscoverer
 from app.discovery.storage import StorageDiscoverer
+from app.discovery.tasks import CloudTasksDiscoverer
+from app.discovery.vpn import VPNDiscoverer
 from app.models.discovery import DiscoveryRequest, DiscoveryResult, DiscoveryStatus, JobProgress, JobStatus
 from app.models.resources import DiscoveredResource, ResourceSummary, ResourceType, ScopeType
 
@@ -32,6 +59,34 @@ DISCOVERER_MAP = {
     ResourceType.GCS_BUCKET: StorageDiscoverer,
     ResourceType.CLOUD_SQL: CloudSQLDiscoverer,
     ResourceType.GKE_CLUSTER: GKEDiscoverer,
+    ResourceType.FIREWALL_RULE: FirewallDiscoverer,
+    ResourceType.LOAD_BALANCER: LoadBalancerDiscoverer,
+    ResourceType.CLOUD_RUN: CloudRunDiscoverer,
+    ResourceType.CLOUD_FUNCTION: CloudFunctionsDiscoverer,
+    ResourceType.PUBSUB_TOPIC: PubSubDiscoverer,
+    ResourceType.PUBSUB_SUBSCRIPTION: PubSubDiscoverer,
+    ResourceType.SERVICE_ACCOUNT: IAMServiceAccountDiscoverer,
+    ResourceType.CLOUD_DNS: CloudDNSDiscoverer,
+    ResourceType.MEMORYSTORE_REDIS: MemorystoreDiscoverer,
+    ResourceType.IAM_BINDING: IAMBindingsDiscoverer,
+    ResourceType.CUSTOM_ROLE: CustomRolesDiscoverer,
+    ResourceType.BIGQUERY_DATASET: BigQueryDiscoverer,
+    ResourceType.SECRET: SecretManagerDiscoverer,
+    ResourceType.ARTIFACT_REGISTRY: ArtifactRegistryDiscoverer,
+    ResourceType.KMS_KEYRING: CloudKMSDiscoverer,
+    ResourceType.CLOUD_NAT: CloudNATDiscoverer,
+    ResourceType.CLOUD_SCHEDULER: CloudSchedulerDiscoverer,
+    ResourceType.SPANNER_INSTANCE: SpannerDiscoverer,
+    ResourceType.FILESTORE: FilestoreDiscoverer,
+    ResourceType.CLOUD_ARMOR: CloudArmorDiscoverer,
+    ResourceType.VPN_GATEWAY: VPNDiscoverer,
+    ResourceType.STATIC_IP: StaticIPDiscoverer,
+    ResourceType.CLOUD_TASKS: CloudTasksDiscoverer,
+    ResourceType.DATAFLOW_JOB: DataflowDiscoverer,
+    ResourceType.COMPOSER: ComposerDiscoverer,
+    ResourceType.API_GATEWAY: APIGatewayDiscoverer,
+    ResourceType.LOGGING_SINK: LoggingSinksDiscoverer,
+    ResourceType.MONITORING_ALERT: MonitoringAlertsDiscoverer,
 }
 
 
@@ -78,14 +133,12 @@ def get_job_results(job_id: str) -> DiscoveryResult | None:
         return None
 
     resources: list[DiscoveredResource] = job.get("resources", [])
-    summary = ResourceSummary(
-        compute_instance=sum(1 for r in resources if r.type == ResourceType.COMPUTE_INSTANCE),
-        vpc_network=sum(1 for r in resources if r.type == ResourceType.VPC_NETWORK),
-        subnet=sum(1 for r in resources if r.type == ResourceType.SUBNET),
-        gcs_bucket=sum(1 for r in resources if r.type == ResourceType.GCS_BUCKET),
-        cloud_sql=sum(1 for r in resources if r.type == ResourceType.CLOUD_SQL),
-        gke_cluster=sum(1 for r in resources if r.type == ResourceType.GKE_CLUSTER),
-    )
+
+    # Build summary dynamically from ResourceType enum
+    summary_data = {}
+    for rt in ResourceType:
+        summary_data[rt.value] = sum(1 for r in resources if r.type == rt)
+    summary = ResourceSummary(**summary_data)
 
     return DiscoveryResult(
         job_id=job_id,

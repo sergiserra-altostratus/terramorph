@@ -1,0 +1,36 @@
+resource "google_cloud_run_v2_service" "{{ resource.terraform_resource_name }}" {
+  name     = "{{ resource.name }}"
+  project  = "{{ resource.project }}"
+  location = "{{ resource.location }}"
+  ingress  = "{{ attrs.ingress }}"
+
+  template {
+    scaling {
+      min_instance_count = {{ attrs.min_instance_count }}
+      max_instance_count = {{ attrs.max_instance_count }}
+    }
+
+    containers {
+      image = "{{ attrs.image }}"
+
+      ports {
+        container_port = {{ attrs.port }}
+      }
+
+      resources {
+        limits = {
+          cpu    = "{{ attrs.cpu_limit }}"
+          memory = "{{ attrs.memory_limit }}"
+        }
+      }
+    }
+  }
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

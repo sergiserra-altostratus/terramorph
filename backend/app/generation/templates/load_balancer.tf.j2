@@ -1,0 +1,21 @@
+resource "google_compute_global_forwarding_rule" "{{ resource.terraform_resource_name }}" {
+  name                  = "{{ resource.name }}"
+  project               = "{{ resource.project }}"
+  target                = "{{ attrs.target }}"
+  port_range            = "{{ attrs.port_range }}"
+  ip_protocol           = "{{ attrs.ip_protocol }}"
+  load_balancing_scheme = "{{ attrs.load_balancing_scheme }}"
+{% if attrs.ip_address %}
+  ip_address            = "{{ attrs.ip_address }}"
+{% endif %}
+{% if attrs.description %}
+  description           = "{{ attrs.description }}"
+{% endif %}
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

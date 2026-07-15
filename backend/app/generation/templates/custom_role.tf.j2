@@ -1,0 +1,15 @@
+resource "google_project_iam_custom_role" "{{ resource.terraform_resource_name }}" {
+  project     = "{{ resource.project }}"
+  role_id     = "{{ attrs.role_id }}"
+  title       = "{{ attrs.title }}"
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+  stage       = "{{ attrs.stage }}"
+
+  permissions = [
+{% for perm in attrs.permissions %}
+    "{{ perm }}",
+{% endfor %}
+  ]
+}

@@ -1,0 +1,5 @@
+resource "google_cloud_tasks_queue" "{{ resource.terraform_resource_name }}" {
+  project  = "{{ resource.project }}"
+  name     = "{{ resource.name }}"
+  location = "{{ attrs.location }}"
+}

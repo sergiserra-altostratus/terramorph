@@ -1,0 +1,44 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/kubernetes-engine/google"
+  version = "~> 33.0"
+
+  project_id = "{{ resource.project }}"
+  name       = "{{ resource.name }}"
+  region     = "{{ attrs.location }}"
+
+  network    = "{{ attrs.network }}"
+  subnetwork = "{{ attrs.subnetwork }}"
+
+{% if attrs.enable_autopilot %}
+  # Autopilot cluster — use the autopilot submodule instead
+  # source = "terraform-google-modules/kubernetes-engine/google//modules/autopilot"
+{% endif %}
+
+  initial_node_count = {{ attrs.initial_node_count }}
+  deletion_protection = {{ attrs.deletion_protection | lower }}
+
+{% if attrs.cluster_ipv4_cidr %}
+  cluster_ipv4_cidr = "{{ attrs.cluster_ipv4_cidr }}"
+{% endif %}
+
+{% if attrs.node_pools %}
+  node_pools = [
+{% for pool in attrs.node_pools %}
+    {
+      name         = "{{ pool.name }}"
+      machine_type = "{{ pool.machine_type }}"
+      node_count   = {{ pool.node_count }}
+      disk_size_gb = {{ pool.disk_size_gb }}
+    },
+{% endfor %}
+  ]
+{% endif %}
+
+{% if attrs.labels %}
+  cluster_resource_labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

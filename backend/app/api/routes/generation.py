@@ -9,7 +9,13 @@ from fastapi.responses import StreamingResponse
 from app.discovery.orchestrator import get_job_results
 from app.generation.hcl_renderer import HCLRenderer
 from app.generation.import_generator import ImportGenerator
-from app.models.generation import GeneratedFile, GenerationRequest, GenerationResult, OutputFormat
+from app.models.generation import (
+    GeneratedFile,
+    GenerationRequest,
+    GenerationResult,
+    GenerationStyle,
+    OutputFormat,
+)
 
 router = APIRouter()
 
@@ -20,6 +26,8 @@ _import_gen = ImportGenerator()
 @router.post("/generate/terraform", response_model=GenerationResult)
 async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     """Generate Terraform HCL code from discovered resources."""
+    from app.services.stats import track_generation
+
     result = get_job_results(request.job_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Job '{request.job_id}' not found")
@@ -50,18 +58,28 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
         files.append(GeneratedFile(filename="backend.tf", content=backend_content))
 
     # Generate resource files
+    use_modules = request.options.generation_style == GenerationStyle.MODULE
     if request.options.output_format == OutputFormat.SINGLE_FILE:
-        content = _renderer.render_all(resources)
+        if use_modules:
+            content = _renderer.render_all_as_modules(resources)
+        else:
+            content = _renderer.render_all(resources)
         files.append(GeneratedFile(filename="main.tf", content=content))
     else:
-        resource_files = _renderer.render_by_type(resources)
+        if use_modules:
+            resource_files = _renderer.render_by_type_as_modules(resources)
+        else:
+            resource_files = _renderer.render_by_type(resources)
         for filename, content in resource_files.items():
             files.append(GeneratedFile(filename=filename, content=content))
 
-    # Generate import script
+    # Generate import blocks (.tf format - Terraform 1.5+)
     if request.options.include_import_script:
         import_content = _import_gen.generate(resources)
-        files.append(GeneratedFile(filename="import.sh", content=import_content))
+        files.append(GeneratedFile(filename="import.tf", content=import_content))
+
+    # Track usage statistics
+    track_generation(resources)
 
     return GenerationResult(
         files=files,
@@ -97,9 +115,9 @@ async def download_terraform(job_id: str) -> StreamingResponse:
         for filename, content in resource_files.items():
             zf.writestr(f"terraform/{filename}", content)
 
-        # Import script
+        # Import blocks (.tf format)
         import_content = _import_gen.generate(resources)
-        zf.writestr("terraform/import.sh", import_content)
+        zf.writestr("terraform/import.tf", import_content)
 
     zip_buffer.seek(0)
 

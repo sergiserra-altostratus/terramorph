@@ -12,6 +12,13 @@ class OutputFormat(str, Enum):
     PER_RESOURCE_TYPE = "per_resource_type"
 
 
+class GenerationStyle(str, Enum):
+    """Code generation style."""
+
+    FLAT = "flat"
+    MODULE = "module"
+
+
 class BackendStateConfig(BaseModel):
     """GCS backend state configuration."""
 
@@ -28,6 +35,7 @@ class GenerationOptions(BaseModel):
     include_provider_block: bool = True
     include_import_script: bool = True
     output_format: OutputFormat = OutputFormat.PER_RESOURCE_TYPE
+    generation_style: GenerationStyle = GenerationStyle.FLAT
     backend_state: BackendStateConfig | None = Field(
         default=None,
         description="GCS backend configuration. If provided, generates backend.tf",

@@ -1,0 +1,17 @@
+resource "google_compute_router_nat" "{{ resource.terraform_resource_name }}" {
+  project = "{{ resource.project }}"
+  name    = "{{ resource.name }}"
+  router  = "{{ attrs.router }}"
+  region  = "{{ attrs.region }}"
+
+  nat_ip_allocate_option             = "{{ attrs.nat_ip_allocate_option }}"
+  source_subnetwork_ip_ranges_to_nat = "{{ attrs.source_subnetwork_ip_ranges_to_nat }}"
+  min_ports_per_vm                   = {{ attrs.min_ports_per_vm }}
+
+{% if attrs.log_config_enabled %}
+  log_config {
+    enable = true
+    filter = "ALL"
+  }
+{% endif %}
+}

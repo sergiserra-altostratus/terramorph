@@ -1,11 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import { Play, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Play, CheckCircle2, Loader2, AlertCircle, Search, Sparkles, Clock, X, ArrowRight } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import type { DiscoveryStatus, DiscoveryResult } from "@/lib/api";
 import { ALL_RESOURCE_TYPES, RESOURCE_TYPE_LABELS } from "@/types";
 import type { ResourceType, ScopeType } from "@/types";
+
+interface RecentScope {
+  type: ScopeType;
+  id: string;
+  timestamp: number;
+}
+
+const RECENT_SCOPES_KEY = "terramorph_recent_scopes";
+const MAX_RECENT = 8;
+
+function loadRecentScopes(): RecentScope[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const data = localStorage.getItem(RECENT_SCOPES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentScope(scope: RecentScope) {
+  const existing = loadRecentScopes();
+  const filtered = existing.filter((s) => !(s.type === scope.type && s.id === scope.id));
+  const updated = [scope, ...filtered].slice(0, MAX_RECENT);
+  localStorage.setItem(RECENT_SCOPES_KEY, JSON.stringify(updated));
+  return updated;
+}
+
+function removeRecentScope(type: ScopeType, id: string): RecentScope[] {
+  const existing = loadRecentScopes();
+  const updated = existing.filter((s) => !(s.type === type && s.id === id));
+  localStorage.setItem(RECENT_SCOPES_KEY, JSON.stringify(updated));
+  return updated;
+}
 
 export default function DiscoverPage() {
   const [scopeType, setScopeType] = useState<ScopeType>("project");
@@ -16,6 +50,11 @@ export default function DiscoverPage() {
   const [result, setResult] = useState<DiscoveryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [recentScopes, setRecentScopes] = useState<RecentScope[]>([]);
+
+  useEffect(() => {
+    setRecentScopes(loadRecentScopes());
+  }, []);
 
   const toggleResourceType = (type: ResourceType) => {
     setSelectedTypes((prev) =>
@@ -23,14 +62,25 @@ export default function DiscoverPage() {
     );
   };
 
+  const selectAll = () => setSelectedTypes(ALL_RESOURCE_TYPES);
+  const selectNone = () => setSelectedTypes([]);
+
+  const applyRecentScope = (scope: RecentScope) => {
+    setScopeType(scope.type);
+    setScopeId(scope.id);
+  };
+
+  const deleteRecentScope = (type: ScopeType, id: string) => {
+    const updated = removeRecentScope(type, id);
+    setRecentScopes(updated);
+  };
+
   const startDiscovery = async () => {
-    if (!scopeId.trim()) {
-      setError("Please enter a scope ID");
-      return;
-    }
-    setError(null);
-    setIsRunning(true);
-    setResult(null);
+    if (!scopeId.trim()) { setError("Please enter a scope ID"); return; }
+    setError(null); setIsRunning(true); setResult(null);
+
+    const updated = saveRecentScope({ type: scopeType, id: scopeId.trim(), timestamp: Date.now() });
+    setRecentScopes(updated);
 
     try {
       const job = await apiClient.startDiscovery({
@@ -65,27 +115,98 @@ export default function DiscoverPage() {
     }
   };
 
+  const scopeLabel = (type: ScopeType) => {
+    switch (type) {
+      case "project": return "Project";
+      case "folder": return "Folder";
+      case "organization": return "Organization";
+    }
+  };
+
+  const scopeColor = (type: ScopeType) => {
+    switch (type) {
+      case "project": return "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-500/20";
+      case "folder": return "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-500/20";
+      case "organization": return "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200/60 dark:border-violet-500/20";
+    }
+  };
+
+  const timeAgo = (ts: number) => {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Discover Resources</h1>
-        <p className="text-muted-foreground">
-          Scan your GCP infrastructure to discover existing resources.
-        </p>
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+          <Search className="h-4 w-4 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-[-0.025em] text-gray-900 dark:text-white">
+            Discover Resources
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Scan your GCP infrastructure to find existing resources.
+          </p>
+        </div>
       </div>
 
+      {/* Recent Scopes */}
+      {recentScopes.length > 0 && (
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 animate-slide-up">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-3">
+            <Clock className="h-3.5 w-3.5" />
+            Recent Scopes
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {recentScopes.map((scope) => (
+              <div
+                key={`${scope.type}-${scope.id}`}
+                className="group relative flex items-center"
+              >
+                <button
+                  onClick={() => applyRecentScope(scope)}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-150 hover:shadow-sm ${scopeColor(scope.type)}`}
+                  disabled={isRunning}
+                >
+                  <span className="opacity-70">{scopeLabel(scope.type)}:</span>
+                  <span className="font-mono font-semibold">{scope.id}</span>
+                  <span className="text-[10px] opacity-50">{timeAgo(scope.timestamp)}</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteRecentScope(scope.type, scope.id); }}
+                  className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-white text-[8px] shadow-sm hover:scale-110 transition-transform"
+                  aria-label="Remove from recents"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Scope Selection */}
-      <div className="rounded-lg border bg-card p-6 space-y-4">
-        <h3 className="text-sm font-medium">Discovery Scope</h3>
+      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          Discovery Scope
+        </h3>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs text-muted-foreground mb-1.5">
-              Scope Type
-            </label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Scope Type</label>
             <select
               value={scopeType}
               onChange={(e) => setScopeType(e.target.value as ScopeType)}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
               disabled={isRunning}
             >
               <option value="project">Project</option>
@@ -94,7 +215,7 @@ export default function DiscoverPage() {
             </select>
           </div>
           <div className="md:col-span-2">
-            <label className="block text-xs text-muted-foreground mb-1.5">
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
               {scopeType === "project" ? "Project ID" : scopeType === "folder" ? "Folder ID" : "Organization ID"}
             </label>
             <input
@@ -102,7 +223,7 @@ export default function DiscoverPage() {
               value={scopeId}
               onChange={(e) => setScopeId(e.target.value)}
               placeholder={scopeType === "project" ? "my-gcp-project" : "123456789"}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
               disabled={isRunning}
             />
           </div>
@@ -110,17 +231,29 @@ export default function DiscoverPage() {
 
         {/* Resource Types */}
         <div>
-          <label className="block text-xs text-muted-foreground mb-2">Resource Types</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
+              Resource Types ({selectedTypes.length}/{ALL_RESOURCE_TYPES.length})
+            </label>
+            <div className="flex gap-2">
+              <button onClick={selectAll} className="text-[10px] font-medium text-indigo-500 hover:text-indigo-600 transition-colors">
+                Select all
+              </button>
+              <button onClick={selectNone} className="text-[10px] font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                Clear
+              </button>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             {ALL_RESOURCE_TYPES.map((type) => (
               <button
                 key={type}
                 onClick={() => toggleResourceType(type)}
                 disabled={isRunning}
-                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
                   selectedTypes.includes(type)
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-accent"
+                    ? "border-indigo-300 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                    : "border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] text-gray-500 dark:text-gray-400 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5"
                 }`}
               >
                 {RESOURCE_TYPE_LABELS[type]}
@@ -129,10 +262,11 @@ export default function DiscoverPage() {
           </div>
         </div>
 
+        {/* Start Button — premium feel */}
         <button
           onClick={startDiscovery}
           disabled={isRunning || selectedTypes.length === 0}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
         >
           {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {isRunning ? "Discovering..." : "Start Discovery"}
@@ -141,29 +275,35 @@ export default function DiscoverPage() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-destructive" />
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="rounded-xl border border-rose-200/60 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-4 flex items-center gap-3 animate-slide-up">
+          <AlertCircle className="h-4 w-4 text-rose-500 flex-shrink-0" />
+          <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
         </div>
       )}
 
-      {/* Progress */}
+      {/* Progress — refined */}
       {isRunning && status && (
-        <div className="rounded-lg border bg-card p-6">
-          <h3 className="text-sm font-medium mb-3">Discovery Progress</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 animate-slide-up">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+            <p className="text-sm font-medium text-gray-900 dark:text-white">
+              Scanning in progress...
+            </p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>{status.progress.message}</span>
-              <span>{status.progress.completed}/{status.progress.total}</span>
+              <span className="font-mono">{status.progress.completed}/{status.progress.total}</span>
             </div>
-            <div className="h-2 rounded-full bg-secondary">
+            {/* Progress bar */}
+            <div className="h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.04] overflow-hidden">
               <div
-                className="h-2 rounded-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
                 style={{ width: `${status.progress.total > 0 ? (status.progress.completed / status.progress.total) * 100 : 0}%` }}
               />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Resources found: {status.resources_found}
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Resources found: <span className="font-semibold text-gray-900 dark:text-white">{status.resources_found}</span>
             </p>
           </div>
         </div>
@@ -171,55 +311,70 @@ export default function DiscoverPage() {
 
       {/* Results */}
       {result && (
-        <div className="rounded-lg border bg-card p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <h3 className="text-sm font-medium">
-              Discovery Complete — {result.resources.length} resources found
-            </h3>
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5 animate-slide-up">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Discovery Complete</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{result.resources.length} resources found</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {Object.entries(result.summary).map(([type, count]) => (
-              <div key={type} className="rounded-md border p-3 text-center">
-                <p className="text-2xl font-bold">{count as number}</p>
-                <p className="text-xs text-muted-foreground">{type.replace("_", " ")}</p>
+          {/* Summary Grid */}
+          <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-2 stagger-children">
+            {Object.entries(result.summary)
+              .filter(([, count]) => (count as number) > 0)
+              .map(([type, count]) => (
+              <div key={type} className="rounded-lg border border-gray-200/60 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02] p-2.5 text-center transition-all duration-150 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:shadow-sm">
+                <p className="text-xl font-semibold tracking-tight text-indigo-600 dark:text-indigo-400">{count as number}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{type.replace(/_/g, " ")}</p>
               </div>
             ))}
           </div>
 
-          <div className="border rounded-md overflow-hidden">
+          {/* Resource Table */}
+          <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-2 text-left font-medium">Name</th>
-                  <th className="px-4 py-2 text-left font-medium">Type</th>
-                  <th className="px-4 py-2 text-left font-medium">Project</th>
-                  <th className="px-4 py-2 text-left font-medium">Location</th>
+                <tr className="border-b border-gray-100 dark:border-white/[0.04] bg-gray-50/50 dark:bg-white/[0.02]">
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Project</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
                 </tr>
               </thead>
               <tbody>
                 {result.resources.slice(0, 50).map((r) => (
-                  <tr key={r.id} className="border-b">
-                    <td className="px-4 py-2 font-mono text-xs">{r.name}</td>
-                    <td className="px-4 py-2">
-                      <span className="rounded bg-secondary px-2 py-0.5 text-xs">
+                  <tr key={r.id} className="border-b border-gray-100 dark:border-white/[0.04] last:border-0 hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-2.5 font-mono text-xs font-medium text-gray-900 dark:text-gray-100">{r.name}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 text-[10px] font-medium">
                         {r.terraform_resource_type}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">{r.project}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{r.location}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.project}</td>
+                    <td className="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400">{r.location}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {result.resources.length > 50 && (
+              <p className="px-4 py-2.5 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-white/[0.04]">
+                Showing 50 of {result.resources.length} resources
+              </p>
+            )}
           </div>
 
+          {/* Generate Button */}
           <a
             href={`/generate?job_id=${jobId}`}
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150"
           >
-            Generate Terraform Code →
+            <Sparkles className="h-4 w-4" />
+            Generate Terraform Code
+            <ArrowRight className="h-4 w-4 ml-1" />
           </a>
         </div>
       )}

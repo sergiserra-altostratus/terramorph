@@ -1,0 +1,23 @@
+resource "google_pubsub_subscription" "{{ resource.terraform_resource_name }}" {
+  name    = "{{ resource.name }}"
+  project = "{{ resource.project }}"
+  topic   = "{{ attrs.topic }}"
+
+  ack_deadline_seconds       = {{ attrs.ack_deadline_seconds }}
+  message_retention_duration = "{{ attrs.message_retention_duration }}"
+  retain_acked_messages      = {{ attrs.retain_acked_messages | lower }}
+
+{% if attrs.push_endpoint %}
+  push_config {
+    push_endpoint = "{{ attrs.push_endpoint }}"
+  }
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

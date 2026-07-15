@@ -7,7 +7,6 @@ import {
   Search,
   Code,
   Settings,
-  Globe,
 } from "lucide-react";
 
 const navigation = [
@@ -20,41 +19,66 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
 
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  };
+
   return (
-    <aside className="flex w-64 flex-col border-r bg-card">
-      {/* Logo */}
-      <div className="flex h-14 items-center gap-2 border-b px-6">
-        <Globe className="h-6 w-6 text-primary" />
-        <span className="text-lg font-semibold">Terramorph</span>
+    <aside className="w-[260px] h-screen flex flex-col border-r border-gray-200/60 dark:border-white/[0.10] bg-white dark:bg-[#0a0a0a]">
+      {/* Logo area */}
+      <div className="px-5 py-5 flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-sm">
+          <span className="text-white text-xs font-bold">T</span>
+        </div>
+        <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
+          Terramorph
+        </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-4">
+      <nav className="flex-1 px-3 py-2 space-y-0.5">
         {navigation.map((item) => {
-          const isActive = pathname === item.href;
+          const active = isActive(item.href);
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-secondary text-secondary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                active
+                  ? "bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.03]"
               }`}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon
+                className={`w-4 h-4 ${
+                  active
+                    ? "text-indigo-500"
+                    : "text-gray-400 dark:text-gray-500"
+                }`}
+              />
               {item.name}
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t p-4">
-        <p className="text-xs text-muted-foreground">
-          Terramorph v0.1.0
-        </p>
-        <p className="text-xs text-muted-foreground">Self-hosted Edition</p>
+      {/* Bottom section */}
+      <div className="px-3 py-4 border-t border-gray-100 dark:border-white/[0.04]">
+        <div className="flex items-center gap-2.5 px-3 py-2">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 flex items-center justify-center">
+            <span className="text-[10px] font-medium text-white">TM</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+              Self-hosted
+            </p>
+            <p className="text-[11px] text-gray-400">v1.0.0</p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-slow" aria-hidden="true" />
+          </div>
+        </div>
       </div>
     </aside>
   );

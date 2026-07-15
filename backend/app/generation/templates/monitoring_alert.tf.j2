@@ -1,0 +1,19 @@
+resource "google_monitoring_alert_policy" "{{ resource.terraform_resource_name }}" {
+  project      = "{{ resource.project }}"
+  display_name = "{{ attrs.display_name }}"
+  combiner     = "{{ attrs.combiner }}"
+  enabled      = {{ attrs.enabled | lower }}
+
+{% if attrs.notification_channels %}
+  notification_channels = [
+{% for ch in attrs.notification_channels %}
+    "{{ ch }}",
+{% endfor %}
+  ]
+{% endif %}
+
+  conditions {
+    display_name = "{{ attrs.display_name }} condition"
+    # NOTE: Conditions need manual review — complex structure
+  }
+}

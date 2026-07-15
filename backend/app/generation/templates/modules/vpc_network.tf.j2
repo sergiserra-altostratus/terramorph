@@ -1,0 +1,18 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/network/google"
+  version = "~> 9.0"
+
+  project_id   = "{{ resource.project }}"
+  network_name = "{{ resource.name }}"
+  routing_mode = "{{ attrs.routing_mode }}"
+
+  auto_create_subnetworks = {{ attrs.auto_create_subnetworks | lower }}
+{% if attrs.mtu and attrs.mtu != 1460 %}
+  mtu                     = {{ attrs.mtu }}
+{% endif %}
+{% if attrs.description %}
+  description             = "{{ attrs.description }}"
+{% endif %}
+
+  subnets = []
+}

@@ -15,6 +15,34 @@ class ResourceType(str, Enum):
     GCS_BUCKET = "gcs_bucket"
     CLOUD_SQL = "cloud_sql"
     GKE_CLUSTER = "gke_cluster"
+    FIREWALL_RULE = "firewall_rule"
+    LOAD_BALANCER = "load_balancer"
+    CLOUD_RUN = "cloud_run"
+    CLOUD_FUNCTION = "cloud_function"
+    PUBSUB_TOPIC = "pubsub_topic"
+    PUBSUB_SUBSCRIPTION = "pubsub_subscription"
+    SERVICE_ACCOUNT = "service_account"
+    CLOUD_DNS = "cloud_dns"
+    MEMORYSTORE_REDIS = "memorystore_redis"
+    IAM_BINDING = "iam_binding"
+    CUSTOM_ROLE = "custom_role"
+    BIGQUERY_DATASET = "bigquery_dataset"
+    SECRET = "secret"
+    ARTIFACT_REGISTRY = "artifact_registry"
+    KMS_KEYRING = "kms_keyring"
+    CLOUD_NAT = "cloud_nat"
+    CLOUD_SCHEDULER = "cloud_scheduler"
+    SPANNER_INSTANCE = "spanner_instance"
+    FILESTORE = "filestore"
+    CLOUD_ARMOR = "cloud_armor"
+    VPN_GATEWAY = "vpn_gateway"
+    STATIC_IP = "static_ip"
+    CLOUD_TASKS = "cloud_tasks"
+    DATAFLOW_JOB = "dataflow_job"
+    COMPOSER = "composer"
+    API_GATEWAY = "api_gateway"
+    LOGGING_SINK = "logging_sink"
+    MONITORING_ALERT = "monitoring_alert"
 
 
 class ScopeType(str, Enum):
@@ -55,14 +83,38 @@ class ResourceSummary(BaseModel):
     gcs_bucket: int = 0
     cloud_sql: int = 0
     gke_cluster: int = 0
+    firewall_rule: int = 0
+    load_balancer: int = 0
+    cloud_run: int = 0
+    cloud_function: int = 0
+    pubsub_topic: int = 0
+    pubsub_subscription: int = 0
+    service_account: int = 0
+    cloud_dns: int = 0
+    memorystore_redis: int = 0
+    iam_binding: int = 0
+    custom_role: int = 0
+    bigquery_dataset: int = 0
+    secret: int = 0
+    artifact_registry: int = 0
+    kms_keyring: int = 0
+    cloud_nat: int = 0
+    cloud_scheduler: int = 0
+    spanner_instance: int = 0
+    filestore: int = 0
+    cloud_armor: int = 0
+    vpn_gateway: int = 0
+    static_ip: int = 0
+    cloud_tasks: int = 0
+    dataflow_job: int = 0
+    composer: int = 0
+    api_gateway: int = 0
+    logging_sink: int = 0
+    monitoring_alert: int = 0
 
     @property
     def total(self) -> int:
-        return (
-            self.compute_instance
-            + self.vpc_network
-            + self.subnet
-            + self.gcs_bucket
-            + self.cloud_sql
-            + self.gke_cluster
+        return sum(
+            getattr(self, field)
+            for field in self.model_fields
         )

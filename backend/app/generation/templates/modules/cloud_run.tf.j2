@@ -1,0 +1,32 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "GoogleCloudPlatform/cloud-run/google"
+  version = "~> 0.12"
+
+  project_id   = "{{ resource.project }}"
+  location     = "{{ resource.location }}"
+  service_name = "{{ resource.name }}"
+  image        = "{{ attrs.image }}"
+
+  ports = {
+    name = "http1"
+    port = {{ attrs.port }}
+  }
+
+  limits = {
+    cpu    = "{{ attrs.cpu_limit }}"
+    memory = "{{ attrs.memory_limit }}"
+  }
+
+  template_scaling = {
+    min_instance_count = {{ attrs.min_instance_count }}
+    max_instance_count = {{ attrs.max_instance_count }}
+  }
+
+{% if attrs.labels %}
+  template_labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

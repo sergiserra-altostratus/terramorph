@@ -1,0 +1,19 @@
+resource "google_pubsub_topic" "{{ resource.terraform_resource_name }}" {
+  name    = "{{ resource.name }}"
+  project = "{{ resource.project }}"
+
+{% if attrs.message_retention_duration %}
+  message_retention_duration = "{{ attrs.message_retention_duration }}"
+{% endif %}
+{% if attrs.kms_key_name %}
+  kms_key_name = "{{ attrs.kms_key_name }}"
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

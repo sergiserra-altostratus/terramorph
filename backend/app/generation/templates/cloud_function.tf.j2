@@ -1,0 +1,25 @@
+resource "google_cloudfunctions2_function" "{{ resource.terraform_resource_name }}" {
+  name     = "{{ resource.name }}"
+  project  = "{{ resource.project }}"
+  location = "{{ resource.location }}"
+
+  build_config {
+    runtime     = "{{ attrs.runtime }}"
+    entry_point = "{{ attrs.entry_point }}"
+  }
+
+  service_config {
+    available_memory   = "{{ attrs.available_memory }}"
+    timeout_seconds    = {{ attrs.timeout_seconds }}
+    max_instance_count = {{ attrs.max_instance_count }}
+    min_instance_count = {{ attrs.min_instance_count }}
+  }
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}
