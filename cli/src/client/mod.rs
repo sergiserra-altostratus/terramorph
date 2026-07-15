@@ -80,6 +80,14 @@ pub struct GenerationOptions {
     pub include_provider_block: bool,
     pub include_import_script: bool,
     pub output_format: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backend_state: Option<BackendStateConfig>,
+}
+
+#[derive(Serialize)]
+pub struct BackendStateConfig {
+    pub bucket: String,
+    pub prefix: String,
 }
 
 #[derive(Deserialize, Debug)]

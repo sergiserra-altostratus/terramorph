@@ -47,6 +47,14 @@ enum Commands {
         /// Output directory for generated files
         #[arg(long, short, default_value = "./terraform")]
         output: String,
+
+        /// GCS bucket name for remote state (generates backend.tf)
+        #[arg(long)]
+        state_bucket: Option<String>,
+
+        /// Path prefix for state file within the bucket
+        #[arg(long, default_value = "terraform/state")]
+        state_prefix: Option<String>,
     },
 
     /// Check discovery job status
@@ -69,8 +77,8 @@ async fn main() {
         Commands::Discover { project, folder, organization, types } => {
             commands::discover::run(&api, project, folder, organization, &types).await
         }
-        Commands::Generate { job_id, output } => {
-            commands::generate::run(&api, &job_id, &output).await
+        Commands::Generate { job_id, output, state_bucket, state_prefix } => {
+            commands::generate::run(&api, &job_id, &output, state_bucket, state_prefix).await
         }
         Commands::Status { job_id } => {
             commands::status::run(&api, &job_id).await

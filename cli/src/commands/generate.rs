@@ -2,14 +2,21 @@ use colored::Colorize;
 use std::fs;
 use std::path::Path;
 
-use crate::client::{ApiClient, GenerationOptions, GenerationRequest};
+use crate::client::{ApiClient, BackendStateConfig, GenerationOptions, GenerationRequest};
 
 pub async fn run(
     api: &ApiClient,
     job_id: &str,
     output: &str,
+    state_bucket: Option<String>,
+    state_prefix: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("{} Generating Terraform code for job {}...", "●".green(), job_id);
+
+    let backend_state = state_bucket.map(|bucket| BackendStateConfig {
+        bucket,
+        prefix: state_prefix.unwrap_or_else(|| "terraform/state".to_string()),
+    });
 
     let req = GenerationRequest {
         job_id: job_id.to_string(),
@@ -18,6 +25,7 @@ pub async fn run(
             include_provider_block: true,
             include_import_script: true,
             output_format: "per_resource_type".to_string(),
+            backend_state,
         },
     };
 

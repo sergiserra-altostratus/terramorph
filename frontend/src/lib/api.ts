@@ -79,6 +79,10 @@ export interface GenerationRequest {
     include_provider_block: boolean;
     include_import_script: boolean;
     output_format: "single_file" | "per_resource_type";
+    backend_state?: {
+      bucket: string;
+      prefix: string;
+    };
   };
 }
 
