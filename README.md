@@ -107,6 +107,14 @@ cd cli && cargo build
 - **Non-root containers** — All services run as unprivileged users
 - **No secrets in images** — Only credential file paths are passed via environment
 
+## Roadmap
+
+Upcoming features and improvements planned for future releases:
+
+- **AWS Support** — Extend discovery and generation to Amazon Web Services (EC2, S3, RDS, EKS, VPC, IAM, Lambda, and more)
+- **Enhanced module generation** — Improve the module-based output to cover all resource types with official Terraform Registry modules and best-practice defaults
+- **Infrastructure from form** — Create new infrastructure directly from a visual form in the web UI, generating Terraform code without needing pre-existing resources (forward Terraform)
+
 ## License
 
 MIT
