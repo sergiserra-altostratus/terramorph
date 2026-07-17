@@ -11,6 +11,7 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/1.9.5/terraform_1.9.5_li
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
+RUN mkdir -p /app/data && chown terramorph:terramorph /app/data
 USER terramorph
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -28,6 +29,7 @@ RUN curl -fsSL https://releases.hashicorp.com/terraform/1.9.5/terraform_1.9.5_li
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
+RUN mkdir -p /app/data && chown terramorph:terramorph /app/data
 USER terramorph
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

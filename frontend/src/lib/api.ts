@@ -91,6 +91,7 @@ export interface GenerationRequest {
     include_import_script: boolean;
     output_format: "single_file" | "per_resource_type";
     generation_style: "flat" | "module";
+    ai_clean: boolean;
     backend_state?: {
       bucket: string;
       prefix: string;
@@ -169,6 +170,26 @@ class ApiClient {
 
   getDownloadUrl(jobId: string): string {
     return `${this.baseUrl}/generate/download/${jobId}`;
+  }
+
+  async getAISettings(): Promise<any> {
+    return this.request("/settings/ai");
+  }
+
+  async getAIStatus(): Promise<{ configured: boolean }> {
+    return this.request("/settings/ai/status");
+  }
+
+  async configureAIProvider(data: { provider: string; api_key: string; model: string; endpoint_url: string }): Promise<any> {
+    return this.request("/settings/ai/configure", { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async activateAIProvider(provider: string): Promise<any> {
+    return this.request("/settings/ai/activate", { method: "POST", body: JSON.stringify({ provider }) });
+  }
+
+  async removeAIProvider(provider: string): Promise<any> {
+    return this.request(`/settings/ai/${provider}`, { method: "DELETE" });
   }
 
   getWebSocketUrl(jobId: string): string {

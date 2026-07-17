@@ -24,6 +24,7 @@ import {
   Network,
   Timer,
   ChevronRight,
+  BrainCircuit,
 } from "lucide-react";
 import { apiClient, type HealthResponse, type UsageStats } from "@/lib/api";
 import { RESOURCE_TYPE_LABELS } from "@/types";
@@ -52,18 +53,34 @@ const resourceCards = [
   { name: "Cloud Scheduler", icon: Timer, color: "from-lime-600 to-lime-700", description: "Cron jobs" },
 ];
 
+interface AIInfo {
+  configured: boolean;
+  active: string | null;
+  count: number;
+}
+
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [stats, setStats] = useState<UsageStats | null>(null);
+  const [aiInfo, setAiInfo] = useState<AIInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       apiClient.getHealth().catch(() => null),
       apiClient.getStats().catch(() => null),
-    ]).then(([h, s]) => {
+      apiClient.getAISettings().catch(() => null),
+    ]).then(([h, s, ai]) => {
       setHealth(h);
       setStats(s);
+      if (ai) {
+        const configuredProviders = ai.providers.filter((p: any) => p.configured);
+        setAiInfo({
+          configured: ai.is_configured,
+          active: ai.active_provider,
+          count: configuredProviders.length,
+        });
+      }
       setLoading(false);
     });
   }, []);
@@ -107,6 +124,7 @@ export default function DashboardPage() {
             <span className="text-sm text-gray-500 dark:text-gray-400">Checking connection...</span>
           </div>
         ) : health ? (
+          <>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -129,6 +147,41 @@ export default function DashboardPage() {
               v{health.version}
             </span>
           </div>
+          {/* AI Provider Status */}
+          {aiInfo && (
+            <div className="flex items-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.04]">
+              <div className="flex items-center gap-2">
+                {aiInfo.configured ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">AI Enabled</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                    <span className="text-sm text-gray-500 dark:text-gray-400">AI Not Configured</span>
+                  </>
+                )}
+              </div>
+              {aiInfo.configured && aiInfo.active && (
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="h-3.5 w-3.5 text-violet-500" />
+                  <span className="text-xs text-gray-600 dark:text-gray-300">
+                    Active: <span className="font-medium">{aiInfo.active}</span>
+                    {aiInfo.count > 1 && (
+                      <span className="text-gray-400 dark:text-gray-500"> (+{aiInfo.count - 1} more)</span>
+                    )}
+                  </span>
+                </div>
+              )}
+              {!aiInfo.configured && (
+                <a href="/settings" className="text-xs text-primary hover:underline">
+                  Configure →
+                </a>
+              )}
+            </div>
+          )}
+          </>
         ) : (
           <div className="flex items-center gap-2">
             <XCircle className="h-4 w-4 text-rose-500" />

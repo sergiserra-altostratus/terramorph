@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Code, Download, Copy, Check, FileText, Sparkles, Database, FileCode } from "lucide-react";
+import { Code, Download, Copy, Check, FileText, Sparkles, Database, FileCode, BrainCircuit } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import type { GenerationResult } from "@/lib/api";
 
@@ -119,6 +119,12 @@ function GeneratePageContent() {
   const [statePrefix, setStatePrefix] = useState("terraform/state");
   const [outputFormat, setOutputFormat] = useState<"single_file" | "per_resource_type">("per_resource_type");
   const [generationStyle, setGenerationStyle] = useState<"flat" | "module">("flat");
+  const [aiClean, setAiClean] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    apiClient.getAIStatus().then((s) => setAiConfigured(s.configured)).catch(() => setAiConfigured(false));
+  }, []);
 
   const generate = async () => {
     if (!jobId) return;
@@ -132,6 +138,7 @@ function GeneratePageContent() {
           include_import_script: true,
           output_format: outputFormat,
           generation_style: generationStyle,
+          ai_clean: aiClean,
           backend_state: stateBucket.trim() ? { bucket: stateBucket.trim(), prefix: statePrefix.trim() } : undefined,
         },
       });
@@ -228,6 +235,41 @@ function GeneratePageContent() {
               ? "Generates standard resource blocks — full control over every attribute."
               : "Uses official terraform-google-modules from the Terraform Registry — best practices baked in."}
           </p>
+        </div>
+
+        {/* AI Code Cleaning */}
+        <div className="border-t border-gray-100 dark:border-white/[0.04] pt-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                <BrainCircuit className="h-3.5 w-3.5" />
+                AI Code Cleaning
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                {aiConfigured === false
+                  ? "No AI provider configured. Set one up in Settings to enable code cleaning."
+                  : "Use AI to remove default values and unnecessary attributes from generated HCL."}
+              </p>
+            </div>
+            <button
+              onClick={() => setAiClean(!aiClean)}
+              disabled={!aiConfigured || loading}
+              className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                aiClean && aiConfigured ? "bg-primary" : "bg-gray-200 dark:bg-gray-700"
+              } ${!aiConfigured ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              aria-label="Toggle AI cleaning"
+              aria-pressed={aiClean}
+            >
+              <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                aiClean && aiConfigured ? "translate-x-5" : "translate-x-0"
+              }`} />
+            </button>
+          </div>
+          {!aiConfigured && aiConfigured !== null && (
+            <a href="/settings" className="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline">
+              Go to Settings to configure AI →
+            </a>
+          )}
         </div>
 
         {/* Backend State */}

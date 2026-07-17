@@ -14,6 +14,7 @@ services:
     volumes:
       - ${GOOGLE_APPLICATION_CREDENTIALS:-~/.config/gcloud/application_default_credentials.json}:/credentials/adc.json:ro
       - ./backend/app:/app/app
+      - terramorph-data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 10s
@@ -38,3 +39,7 @@ services:
 networks:
   default:
     name: terramorph-network
+
+volumes:
+  terramorph-data:
+    name: terramorph-data

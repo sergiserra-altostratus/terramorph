@@ -10,6 +10,7 @@ from app.discovery.orchestrator import get_job_results
 from app.generation.fmt import fmt_content
 from app.generation.hcl_renderer import HCLRenderer
 from app.generation.import_generator import ImportGenerator
+from app.core.logging import get_logger
 from app.models.generation import (
     GeneratedFile,
     GenerationRequest,
@@ -19,6 +20,8 @@ from app.models.generation import (
 )
 
 router = APIRouter()
+
+logger = get_logger("generation")
 
 _renderer = HCLRenderer()
 _import_gen = ImportGenerator()
@@ -81,6 +84,32 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
 
     # Track usage statistics
     track_generation(resources)
+
+    # Apply AI cleaning if enabled
+    if request.options.ai_clean:
+        from app.services.ai_settings import get_active_config
+        from app.services.ai_cleaner import clean_hcl
+
+        ai_config = get_active_config()
+        if ai_config:
+            cleaned_files = []
+            for f in files:
+                if f.filename.endswith(".tf") and f.filename not in ("provider.tf", "backend.tf", "import.tf"):
+                    try:
+                        cleaned_content = await clean_hcl(
+                            hcl_code=f.content,
+                            provider=ai_config.provider,
+                            api_key=ai_config.api_key,
+                            model=ai_config.model or None,
+                            endpoint_url=ai_config.endpoint_url or None,
+                        )
+                        cleaned_files.append(GeneratedFile(filename=f.filename, content=cleaned_content))
+                    except Exception as e:
+                        logger.warning(f"AI cleaning failed for {f.filename}: {e}")
+                        cleaned_files.append(f)
+                else:
+                    cleaned_files.append(f)
+            files = cleaned_files
 
     # Apply terraform fmt to all .tf files
     formatted_files = []

@@ -36,6 +36,7 @@ class GenerationOptions(BaseModel):
     include_import_script: bool = True
     output_format: OutputFormat = OutputFormat.PER_RESOURCE_TYPE
     generation_style: GenerationStyle = GenerationStyle.FLAT
+    ai_clean: bool = Field(default=False, description="Use AI to clean generated HCL (remove defaults)")
     backend_state: BackendStateConfig | None = Field(
         default=None,
         description="GCS backend configuration. If provided, generates backend.tf",
