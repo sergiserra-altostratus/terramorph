@@ -1,0 +1,15 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/address/google"
+  version = "~> 4.0"
+
+  project_id = "{{ resource.project }}"
+  names      = ["{{ resource.name }}"]
+{% if attrs.region %}
+  region     = "{{ attrs.region }}"
+{% endif %}
+
+  address_type = "{{ attrs.address_type }}"
+{% if attrs.purpose %}
+  purpose      = "{{ attrs.purpose }}"
+{% endif %}
+}

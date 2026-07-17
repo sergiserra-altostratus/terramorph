@@ -1,0 +1,15 @@
+resource "google_compute_health_check" "{{ resource.terraform_resource_name }}" {
+  project             = "{{ resource.project }}"
+  name                = "{{ resource.name }}"
+  check_interval_sec  = {{ attrs.check_interval_sec }}
+  timeout_sec         = {{ attrs.timeout_sec }}
+  healthy_threshold   = {{ attrs.healthy_threshold }}
+  unhealthy_threshold = {{ attrs.unhealthy_threshold }}
+{% if attrs.description %}
+  description         = "{{ attrs.description }}"
+{% endif %}
+
+  tcp_health_check {
+    port = 80
+  }
+}

@@ -1,0 +1,9 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/vpn/google//modules/vpn_ha"
+  version = "~> 4.0"
+
+  project_id = "{{ resource.project }}"
+  name       = "{{ resource.name }}"
+  region     = "{{ attrs.region }}"
+  network    = "{{ attrs.network }}"
+}

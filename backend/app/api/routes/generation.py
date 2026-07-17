@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.discovery.orchestrator import get_job_results
+from app.generation.fmt import fmt_content
 from app.generation.hcl_renderer import HCLRenderer
 from app.generation.import_generator import ImportGenerator
 from app.models.generation import (
@@ -81,8 +82,16 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     # Track usage statistics
     track_generation(resources)
 
+    # Apply terraform fmt to all .tf files
+    formatted_files = []
+    for f in files:
+        if f.filename.endswith(".tf"):
+            formatted_files.append(GeneratedFile(filename=f.filename, content=fmt_content(f.content)))
+        else:
+            formatted_files.append(f)
+
     return GenerationResult(
-        files=files,
+        files=formatted_files,
         total_resources=len(resources),
         import_commands=len(resources),
     )
@@ -105,7 +114,7 @@ async def download_terraform(job_id: str) -> StreamingResponse:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         # Provider
-        provider_content = _renderer.render_provider(projects[0] if projects else "")
+        provider_content = fmt_content(_renderer.render_provider(projects[0] if projects else ""))
         zf.writestr("terraform/provider.tf", provider_content)
 
         # Backend state (default: no backend.tf in download unless specified via POST)
@@ -113,10 +122,10 @@ async def download_terraform(job_id: str) -> StreamingResponse:
         # Resources by type
         resource_files = _renderer.render_by_type(resources)
         for filename, content in resource_files.items():
-            zf.writestr(f"terraform/{filename}", content)
+            zf.writestr(f"terraform/{filename}", fmt_content(content))
 
         # Import blocks (.tf format)
-        import_content = _import_gen.generate(resources)
+        import_content = fmt_content(_import_gen.generate(resources))
         zf.writestr("terraform/import.tf", import_content)
 
     zip_buffer.seek(0)

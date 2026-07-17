@@ -1,0 +1,17 @@
+resource "google_compute_disk" "{{ resource.terraform_resource_name }}" {
+  project = "{{ resource.project }}"
+  name    = "{{ resource.name }}"
+  zone    = "{{ attrs.zone }}"
+  type    = "{{ attrs.type }}"
+  size    = {{ attrs.size }}
+{% if attrs.image %}
+  image   = "{{ attrs.image }}"
+{% endif %}
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

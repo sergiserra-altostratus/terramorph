@@ -1,0 +1,11 @@
+resource "google_compute_instance_group_manager" "{{ resource.terraform_resource_name }}" {
+  project            = "{{ resource.project }}"
+  name               = "{{ resource.name }}"
+  zone               = "{{ attrs.zone }}"
+  base_instance_name = "{{ attrs.base_instance_name }}"
+  target_size        = {{ attrs.target_size }}
+
+  version {
+    instance_template = "{{ attrs.instance_template }}"
+  }
+}

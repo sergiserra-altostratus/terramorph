@@ -1,0 +1,19 @@
+resource "google_compute_route" "{{ resource.terraform_resource_name }}" {
+  project    = "{{ resource.project }}"
+  name       = "{{ resource.name }}"
+  network    = "{{ attrs.network }}"
+  dest_range = "{{ attrs.dest_range }}"
+  priority   = {{ attrs.priority }}
+{% if attrs.next_hop_gateway %}
+  next_hop_gateway = "{{ attrs.next_hop_gateway }}"
+{% endif %}
+{% if attrs.next_hop_ip %}
+  next_hop_ip = "{{ attrs.next_hop_ip }}"
+{% endif %}
+{% if attrs.next_hop_instance %}
+  next_hop_instance = "{{ attrs.next_hop_instance }}"
+{% endif %}
+{% if attrs.tags %}
+  tags = [{% for t in attrs.tags %}"{{ t }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+}

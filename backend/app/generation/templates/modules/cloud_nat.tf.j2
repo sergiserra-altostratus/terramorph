@@ -1,0 +1,18 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/cloud-nat/google"
+  version = "~> 5.0"
+
+  project_id = "{{ resource.project }}"
+  name       = "{{ resource.name }}"
+  router     = "{{ attrs.router }}"
+  region     = "{{ attrs.region }}"
+
+  nat_ip_allocate_option             = "{{ attrs.nat_ip_allocate_option }}"
+  source_subnetwork_ip_ranges_to_nat = "{{ attrs.source_subnetwork_ip_ranges_to_nat }}"
+  min_ports_per_vm                   = {{ attrs.min_ports_per_vm }}
+
+{% if attrs.log_config_enabled %}
+  log_config_enable = true
+  log_config_filter = "ALL"
+{% endif %}
+}

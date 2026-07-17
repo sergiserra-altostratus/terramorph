@@ -43,6 +43,19 @@ class ResourceType(str, Enum):
     API_GATEWAY = "api_gateway"
     LOGGING_SINK = "logging_sink"
     MONITORING_ALERT = "monitoring_alert"
+    SSL_POLICY = "ssl_policy"
+    INSTANCE_GROUP = "instance_group"
+    BIGTABLE_INSTANCE = "bigtable_instance"
+    COMPUTE_DISK = "compute_disk"
+    VERTEX_AI_ENDPOINT = "vertex_ai_endpoint"
+    COMPUTE_SNAPSHOT = "compute_snapshot"
+    INSTANCE_TEMPLATE = "instance_template"
+    COMPUTE_IMAGE = "compute_image"
+    COMPUTE_RESERVATION = "compute_reservation"
+    DNS_POLICY = "dns_policy"
+    VPC_CONNECTOR = "vpc_connector"
+    COMPUTE_ROUTE = "compute_route"
+    HEALTH_CHECK = "health_check"
 
 
 class ScopeType(str, Enum):
@@ -111,6 +124,19 @@ class ResourceSummary(BaseModel):
     api_gateway: int = 0
     logging_sink: int = 0
     monitoring_alert: int = 0
+    ssl_policy: int = 0
+    instance_group: int = 0
+    bigtable_instance: int = 0
+    compute_disk: int = 0
+    vertex_ai_endpoint: int = 0
+    compute_snapshot: int = 0
+    instance_template: int = 0
+    compute_image: int = 0
+    compute_reservation: int = 0
+    dns_policy: int = 0
+    vpc_connector: int = 0
+    compute_route: int = 0
+    health_check: int = 0
 
     @property
     def total(self) -> int:

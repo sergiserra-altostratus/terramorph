@@ -1,0 +1,14 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/iam/google//modules/projects_iam"
+  version = "~> 8.0"
+
+  projects = ["{{ attrs.project }}"]
+
+  bindings = {
+    "{{ attrs.role }}" = [
+{% for member in attrs.members %}
+      "{{ member }}",
+{% endfor %}
+    ]
+  }
+}

@@ -114,6 +114,11 @@ Upcoming features and improvements planned for future releases:
 - **AWS Support** — Extend discovery and generation to Amazon Web Services (EC2, S3, RDS, EKS, VPC, IAM, Lambda, and more)
 - **Enhanced module generation** — Improve the module-based output to cover all resource types with official Terraform Registry modules and best-practice defaults
 - **Infrastructure from form** — Create new infrastructure directly from a visual form in the web UI, generating Terraform code without needing pre-existing resources (forward Terraform)
+- **AI-powered code cleaning** — Use LLMs to remove default values and unnecessary attributes from generated HCL, producing cleaner and more maintainable code
+- **Drift detection and auto-fix** — After import, run `terraform plan` and iteratively correct drift using AI until the state matches infrastructure perfectly
+- **Bulk Export mode** — Alternative discovery method using `gcloud beta resource-config bulk-export` for more accurate attribute extraction
+- **Multi-tenant SaaS mode** — OAuth-based authentication, team workspaces, and hosted deployment option
+- **Persistent storage** — Replace in-memory job store with Redis/PostgreSQL for production resilience and history tracking
 
 ## License
 

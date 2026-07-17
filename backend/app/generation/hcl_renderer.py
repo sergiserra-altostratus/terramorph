@@ -9,7 +9,7 @@ from app.models.resources import DiscoveredResource, ResourceType
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 MODULES_DIR = Path(__file__).parent / "templates" / "modules"
 
-# Module template map - only resource types that have module equivalents
+# Module template map - resource types that have official module equivalents
 MODULE_TEMPLATE_MAP = {
     ResourceType.COMPUTE_INSTANCE: "modules/compute_instance.tf.j2",
     ResourceType.VPC_NETWORK: "modules/vpc_network.tf.j2",
@@ -18,6 +18,19 @@ MODULE_TEMPLATE_MAP = {
     ResourceType.GKE_CLUSTER: "modules/gke_cluster.tf.j2",
     ResourceType.CLOUD_RUN: "modules/cloud_run.tf.j2",
     ResourceType.SERVICE_ACCOUNT: "modules/service_account.tf.j2",
+    ResourceType.CLOUD_NAT: "modules/cloud_nat.tf.j2",
+    ResourceType.CLOUD_DNS: "modules/cloud_dns.tf.j2",
+    ResourceType.VPN_GATEWAY: "modules/vpn.tf.j2",
+    ResourceType.IAM_BINDING: "modules/iam_binding.tf.j2",
+    ResourceType.KMS_KEYRING: "modules/kms.tf.j2",
+    ResourceType.PUBSUB_TOPIC: "modules/pubsub.tf.j2",
+    ResourceType.BIGQUERY_DATASET: "modules/bigquery.tf.j2",
+    ResourceType.MEMORYSTORE_REDIS: "modules/memorystore.tf.j2",
+    ResourceType.LOAD_BALANCER: "modules/load_balancer.tf.j2",
+    ResourceType.LOGGING_SINK: "modules/log_export.tf.j2",
+    ResourceType.STATIC_IP: "modules/address.tf.j2",
+    ResourceType.CLOUD_SCHEDULER: "modules/scheduled_function.tf.j2",
+    ResourceType.MONITORING_ALERT: "modules/monitoring.tf.j2",
 }
 
 RESOURCE_TYPE_FILE_MAP = {
@@ -55,6 +68,19 @@ RESOURCE_TYPE_FILE_MAP = {
     ResourceType.API_GATEWAY: "apigateway.tf",
     ResourceType.LOGGING_SINK: "logging.tf",
     ResourceType.MONITORING_ALERT: "monitoring.tf",
+    ResourceType.SSL_POLICY: "ssl.tf",
+    ResourceType.INSTANCE_GROUP: "instance_groups.tf",
+    ResourceType.BIGTABLE_INSTANCE: "bigtable.tf",
+    ResourceType.COMPUTE_DISK: "disks.tf",
+    ResourceType.VERTEX_AI_ENDPOINT: "vertex_ai.tf",
+    ResourceType.COMPUTE_SNAPSHOT: "snapshots.tf",
+    ResourceType.INSTANCE_TEMPLATE: "instance_templates.tf",
+    ResourceType.COMPUTE_IMAGE: "images.tf",
+    ResourceType.COMPUTE_RESERVATION: "reservations.tf",
+    ResourceType.DNS_POLICY: "dns.tf",
+    ResourceType.VPC_CONNECTOR: "vpc_connectors.tf",
+    ResourceType.COMPUTE_ROUTE: "routes.tf",
+    ResourceType.HEALTH_CHECK: "healthchecks.tf",
 }
 
 RESOURCE_TYPE_TEMPLATE_MAP = {
@@ -92,6 +118,19 @@ RESOURCE_TYPE_TEMPLATE_MAP = {
     ResourceType.API_GATEWAY: "api_gateway.tf.j2",
     ResourceType.LOGGING_SINK: "logging_sink.tf.j2",
     ResourceType.MONITORING_ALERT: "monitoring_alert.tf.j2",
+    ResourceType.SSL_POLICY: "ssl_policy.tf.j2",
+    ResourceType.INSTANCE_GROUP: "instance_group.tf.j2",
+    ResourceType.BIGTABLE_INSTANCE: "bigtable.tf.j2",
+    ResourceType.COMPUTE_DISK: "compute_disk.tf.j2",
+    ResourceType.VERTEX_AI_ENDPOINT: "vertex_ai.tf.j2",
+    ResourceType.COMPUTE_SNAPSHOT: "compute_snapshot.tf.j2",
+    ResourceType.INSTANCE_TEMPLATE: "instance_template.tf.j2",
+    ResourceType.COMPUTE_IMAGE: "compute_image.tf.j2",
+    ResourceType.COMPUTE_RESERVATION: "compute_reservation.tf.j2",
+    ResourceType.DNS_POLICY: "dns_policy.tf.j2",
+    ResourceType.VPC_CONNECTOR: "vpc_connector.tf.j2",
+    ResourceType.COMPUTE_ROUTE: "compute_route.tf.j2",
+    ResourceType.HEALTH_CHECK: "health_check.tf.j2",
 }
 
 

@@ -9,22 +9,32 @@ from google.auth.credentials import Credentials
 
 from app.core.credentials import get_credentials
 from app.core.logging import get_logger
+from app.discovery.artifact_registry import ArtifactRegistryDiscoverer
 from app.discovery.apigateway import APIGatewayDiscoverer
 from app.discovery.armor import CloudArmorDiscoverer
-from app.discovery.artifact_registry import ArtifactRegistryDiscoverer
 from app.discovery.bigquery import BigQueryDiscoverer
+from app.discovery.bigtable import BigtableDiscoverer
 from app.discovery.cloudrun import CloudRunDiscoverer
 from app.discovery.composer import ComposerDiscoverer
 from app.discovery.compute import ComputeDiscoverer
+from app.discovery.compute_disk import ComputeDiskDiscoverer
+from app.discovery.compute_image import ComputeImageDiscoverer
+from app.discovery.compute_reservation import ComputeReservationDiscoverer
+from app.discovery.compute_route import ComputeRouteDiscoverer
+from app.discovery.compute_snapshot import ComputeSnapshotDiscoverer
 from app.discovery.custom_roles import CustomRolesDiscoverer
 from app.discovery.dataflow import DataflowDiscoverer
 from app.discovery.dns import CloudDNSDiscoverer
+from app.discovery.dns_policy import DNSPolicyDiscoverer
 from app.discovery.filestore import FilestoreDiscoverer
 from app.discovery.firewall import FirewallDiscoverer
 from app.discovery.functions import CloudFunctionsDiscoverer
 from app.discovery.gke import GKEDiscoverer
+from app.discovery.health_check import HealthCheckDiscoverer
 from app.discovery.iam import IAMServiceAccountDiscoverer
 from app.discovery.iam_bindings import IAMBindingsDiscoverer
+from app.discovery.instance_group import InstanceGroupDiscoverer
+from app.discovery.instance_template import InstanceTemplateDiscoverer
 from app.discovery.kms import CloudKMSDiscoverer
 from app.discovery.loadbalancer import LoadBalancerDiscoverer
 from app.discovery.logging_sinks import LoggingSinksDiscoverer
@@ -37,9 +47,12 @@ from app.discovery.scheduler import CloudSchedulerDiscoverer
 from app.discovery.secrets import SecretManagerDiscoverer
 from app.discovery.spanner import SpannerDiscoverer
 from app.discovery.sql import CloudSQLDiscoverer
+from app.discovery.ssl_policy import SSLPolicyDiscoverer
 from app.discovery.static_ip import StaticIPDiscoverer
 from app.discovery.storage import StorageDiscoverer
 from app.discovery.tasks import CloudTasksDiscoverer
+from app.discovery.vertex_ai import VertexAIDiscoverer
+from app.discovery.vpc_connector import VPCAccessConnectorDiscoverer
 from app.discovery.vpn import VPNDiscoverer
 from app.models.discovery import DiscoveryRequest, DiscoveryResult, DiscoveryStatus, JobProgress, JobStatus
 from app.models.resources import DiscoveredResource, ResourceSummary, ResourceType, ScopeType
@@ -87,6 +100,19 @@ DISCOVERER_MAP = {
     ResourceType.API_GATEWAY: APIGatewayDiscoverer,
     ResourceType.LOGGING_SINK: LoggingSinksDiscoverer,
     ResourceType.MONITORING_ALERT: MonitoringAlertsDiscoverer,
+    ResourceType.SSL_POLICY: SSLPolicyDiscoverer,
+    ResourceType.INSTANCE_GROUP: InstanceGroupDiscoverer,
+    ResourceType.BIGTABLE_INSTANCE: BigtableDiscoverer,
+    ResourceType.COMPUTE_DISK: ComputeDiskDiscoverer,
+    ResourceType.VERTEX_AI_ENDPOINT: VertexAIDiscoverer,
+    ResourceType.COMPUTE_SNAPSHOT: ComputeSnapshotDiscoverer,
+    ResourceType.INSTANCE_TEMPLATE: InstanceTemplateDiscoverer,
+    ResourceType.COMPUTE_IMAGE: ComputeImageDiscoverer,
+    ResourceType.COMPUTE_RESERVATION: ComputeReservationDiscoverer,
+    ResourceType.DNS_POLICY: DNSPolicyDiscoverer,
+    ResourceType.VPC_CONNECTOR: VPCAccessConnectorDiscoverer,
+    ResourceType.COMPUTE_ROUTE: ComputeRouteDiscoverer,
+    ResourceType.HEALTH_CHECK: HealthCheckDiscoverer,
 }
 
 

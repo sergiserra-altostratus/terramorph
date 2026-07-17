@@ -1,0 +1,21 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/lb-http/google"
+  version = "~> 11.0"
+
+  project = "{{ resource.project }}"
+  name    = "{{ resource.name }}"
+
+{% if attrs.ip_address %}
+  address = "{{ attrs.ip_address }}"
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+
+  backends = {}
+}

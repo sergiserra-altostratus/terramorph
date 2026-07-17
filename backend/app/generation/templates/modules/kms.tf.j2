@@ -1,0 +1,10 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/kms/google"
+  version = "~> 3.0"
+
+  project_id = "{{ resource.project }}"
+  keyring    = "{{ resource.name }}"
+  location   = "{{ attrs.location }}"
+
+  keys = []
+}

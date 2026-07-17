@@ -1,0 +1,29 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/memorystore/google"
+  version = "~> 9.0"
+
+  project        = "{{ resource.project }}"
+  name           = "{{ resource.name }}"
+  region         = "{{ attrs.region }}"
+  tier           = "{{ attrs.tier }}"
+  memory_size_gb = {{ attrs.memory_size_gb }}
+  redis_version  = "{{ attrs.redis_version }}"
+
+{% if attrs.display_name %}
+  display_name = "{{ attrs.display_name }}"
+{% endif %}
+
+{% if attrs.authorized_network %}
+  authorized_network = "{{ attrs.authorized_network }}"
+{% endif %}
+
+  connect_mode = "{{ attrs.connect_mode }}"
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

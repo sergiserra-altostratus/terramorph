@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api";
 import type { DiscoveryStatus, DiscoveryResult } from "@/lib/api";
 import { ALL_RESOURCE_TYPES, RESOURCE_TYPE_LABELS } from "@/types";
 import type { ResourceType, ScopeType } from "@/types";
+import { ResourceTypeSelector } from "@/components/ResourceTypeSelector";
 
 interface RecentScope {
   type: ScopeType;
@@ -55,15 +56,6 @@ export default function DiscoverPage() {
   useEffect(() => {
     setRecentScopes(loadRecentScopes());
   }, []);
-
-  const toggleResourceType = (type: ResourceType) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
-  };
-
-  const selectAll = () => setSelectedTypes(ALL_RESOURCE_TYPES);
-  const selectNone = () => setSelectedTypes([]);
 
   const applyRecentScope = (scope: RecentScope) => {
     setScopeType(scope.type);
@@ -229,38 +221,12 @@ export default function DiscoverPage() {
           </div>
         </div>
 
-        {/* Resource Types */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400">
-              Resource Types ({selectedTypes.length}/{ALL_RESOURCE_TYPES.length})
-            </label>
-            <div className="flex gap-2">
-              <button onClick={selectAll} className="text-[10px] font-medium text-indigo-500 hover:text-indigo-600 transition-colors">
-                Select all
-              </button>
-              <button onClick={selectNone} className="text-[10px] font-medium text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                Clear
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {ALL_RESOURCE_TYPES.map((type) => (
-              <button
-                key={type}
-                onClick={() => toggleResourceType(type)}
-                disabled={isRunning}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
-                  selectedTypes.includes(type)
-                    ? "border-indigo-300 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                    : "border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] text-gray-500 dark:text-gray-400 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5"
-                }`}
-              >
-                {RESOURCE_TYPE_LABELS[type]}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Resource Types — Categorized Selector */}
+        <ResourceTypeSelector
+          selectedTypes={selectedTypes}
+          onChange={setSelectedTypes}
+          disabled={isRunning}
+        />
 
         {/* Start Button — premium feel */}
         <button

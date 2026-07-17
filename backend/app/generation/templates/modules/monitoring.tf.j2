@@ -1,0 +1,11 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/cloud-operations/google//modules/agent-policy"
+  version = "~> 0.5"
+
+  project_id = "{{ resource.project }}"
+
+  # NOTE: The cloud-operations module covers monitoring agent policies.
+  # For alert policies, flat resource blocks are recommended as the module
+  # doesn't directly map to google_monitoring_alert_policy.
+  # Falling back to resource block for this resource type.
+}

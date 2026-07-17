@@ -1,0 +1,18 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/scheduled-function/google"
+  version = "~> 4.0"
+
+  project_id = "{{ resource.project }}"
+  region     = "{{ resource.location }}"
+  job_name   = "{{ resource.name }}"
+
+  job_schedule = "{{ attrs.schedule }}"
+  time_zone    = "{{ attrs.time_zone }}"
+
+{% if attrs.description %}
+  job_description = "{{ attrs.description }}"
+{% endif %}
+
+  function_source_directory = ""
+  function_name             = "{{ resource.name }}-fn"
+}
