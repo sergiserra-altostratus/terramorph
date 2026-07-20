@@ -30,9 +30,7 @@ export function Sidebar() {
     <aside className="w-[260px] h-screen flex flex-col border-r border-gray-200/60 dark:border-white/[0.10] bg-white dark:bg-[#0a0a0a]">
       {/* Logo area */}
       <div className="px-5 py-5 flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-sm">
-          <span className="text-white text-xs font-bold">T</span>
-        </div>
+        <img src="/logo.png" alt="Terramorph" className="w-7 h-7 rounded-lg" />
         <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
           Terramorph
         </span>

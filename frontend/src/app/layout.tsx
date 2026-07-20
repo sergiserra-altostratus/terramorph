@@ -14,6 +14,10 @@ export const metadata: Metadata = {
   title: "Terramorph - Reverse Terraform",
   description:
     "Discover existing GCP infrastructure and generate Terraform code automatically",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
