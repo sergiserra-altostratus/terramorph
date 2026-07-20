@@ -45,17 +45,42 @@ function removeRecentScope(type: ScopeType, id: string): RecentScope[] {
 export default function DiscoverPage() {
   const [scopeType, setScopeType] = useState<ScopeType>("project");
   const [scopeId, setScopeId] = useState("");
-  const [selectedTypes, setSelectedTypes] = useState<ResourceType[]>(ALL_RESOURCE_TYPES);
+  const [selectedTypes, setSelectedTypes] = useState<ResourceType[]>([]);
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<DiscoveryStatus | null>(null);
   const [result, setResult] = useState<DiscoveryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [recentScopes, setRecentScopes] = useState<RecentScope[]>([]);
+  const [discoveryMode, setDiscoveryMode] = useState<"api" | "bulk_export">("api");
+  const [bulkExportAvailable, setBulkExportAvailable] = useState<boolean | null>(null);
+  const [bulkResult, setBulkResult] = useState<any>(null);
+  const [apiCheck, setApiCheck] = useState<{ status: "idle" | "checking" | "done"; enabled?: boolean; message?: string }>({ status: "idle" });
 
   useEffect(() => {
     setRecentScopes(loadRecentScopes());
+    apiClient.getBulkExportAvailability()
+      .then((r) => setBulkExportAvailable(r.available))
+      .catch(() => setBulkExportAvailable(false));
   }, []);
+
+  // Check Cloud Asset API when mode is bulk_export and project ID changes
+  useEffect(() => {
+    if (discoveryMode !== "bulk_export" || !scopeId.trim() || scopeType !== "project") {
+      setApiCheck({ status: "idle" });
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setApiCheck({ status: "checking" });
+      try {
+        const result = await apiClient.checkCloudAssetAPI(scopeId.trim());
+        setApiCheck({ status: "done", enabled: result.enabled, message: result.message || result.error });
+      } catch {
+        setApiCheck({ status: "done", enabled: false, message: "Unable to check API status" });
+      }
+    }, 800); // Debounce
+    return () => clearTimeout(timer);
+  }, [discoveryMode, scopeId, scopeType]);
 
   const applyRecentScope = (scope: RecentScope) => {
     setScopeType(scope.type);
@@ -69,38 +94,66 @@ export default function DiscoverPage() {
 
   const startDiscovery = async () => {
     if (!scopeId.trim()) { setError("Please enter a scope ID"); return; }
-    setError(null); setIsRunning(true); setResult(null);
+    setError(null); setIsRunning(true); setResult(null); setBulkResult(null);
 
     const updated = saveRecentScope({ type: scopeType, id: scopeId.trim(), timestamp: Date.now() });
     setRecentScopes(updated);
 
     try {
-      const job = await apiClient.startDiscovery({
-        scope: { type: scopeType, id: scopeId.trim() },
-        resource_types: selectedTypes,
-      });
-      setJobId(job.job_id);
+      if (discoveryMode === "bulk_export") {
+        // Bulk Export mode
+        const job = await apiClient.startBulkExport({ project_id: scopeId.trim() });
+        setJobId(job.job_id);
 
-      const pollInterval = setInterval(async () => {
-        try {
-          const s = await apiClient.getDiscoveryStatus(job.job_id);
-          setStatus(s);
-          if (s.status === "completed") {
+        const pollInterval = setInterval(async () => {
+          try {
+            const s = await apiClient.getBulkExportStatus(job.job_id);
+            setStatus(s);
+            if (s.status === "completed") {
+              clearInterval(pollInterval);
+              const r = await apiClient.getBulkExportResults(job.job_id);
+              setBulkResult(r);
+              setIsRunning(false);
+            } else if (s.status === "failed") {
+              clearInterval(pollInterval);
+              setError(s.error || "Bulk export failed");
+              setIsRunning(false);
+            }
+          } catch (e) {
             clearInterval(pollInterval);
-            const r = await apiClient.getDiscoveryResults(job.job_id);
-            setResult(r);
-            setIsRunning(false);
-          } else if (s.status === "failed") {
-            clearInterval(pollInterval);
-            setError(s.error || "Discovery failed");
+            setError(e instanceof Error ? e.message : "Status check failed");
             setIsRunning(false);
           }
-        } catch (e) {
-          clearInterval(pollInterval);
-          setError(e instanceof Error ? e.message : "Status check failed");
-          setIsRunning(false);
-        }
-      }, 2000);
+        }, 3000);
+      } else {
+        // API Discovery mode (existing)
+        const job = await apiClient.startDiscovery({
+          scope: { type: scopeType, id: scopeId.trim() },
+          resource_types: selectedTypes,
+        });
+        setJobId(job.job_id);
+
+        const pollInterval = setInterval(async () => {
+          try {
+            const s = await apiClient.getDiscoveryStatus(job.job_id);
+            setStatus(s);
+            if (s.status === "completed") {
+              clearInterval(pollInterval);
+              const r = await apiClient.getDiscoveryResults(job.job_id);
+              setResult(r);
+              setIsRunning(false);
+            } else if (s.status === "failed") {
+              clearInterval(pollInterval);
+              setError(s.error || "Discovery failed");
+              setIsRunning(false);
+            }
+          } catch (e) {
+            clearInterval(pollInterval);
+            setError(e instanceof Error ? e.message : "Status check failed");
+            setIsRunning(false);
+          }
+        }, 2000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start discovery");
       setIsRunning(false);
@@ -192,6 +245,46 @@ export default function DiscoverPage() {
           Discovery Scope
         </h3>
 
+        {/* Discovery Mode Selector */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Discovery Mode</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDiscoveryMode("api")}
+              disabled={isRunning}
+              className={`flex-1 rounded-lg border px-4 py-3 text-left transition-all duration-150 ${
+                discoveryMode === "api"
+                  ? "border-indigo-300 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10"
+                  : "border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1]"
+              }`}
+            >
+              <p className={`text-sm font-medium ${discoveryMode === "api" ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-200"}`}>
+                API Discovery
+              </p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                Fast, parallel — uses GCP Python SDKs directly
+              </p>
+            </button>
+            <button
+              onClick={() => setDiscoveryMode("bulk_export")}
+              disabled={isRunning || bulkExportAvailable === false}
+              className={`flex-1 rounded-lg border px-4 py-3 text-left transition-all duration-150 ${
+                discoveryMode === "bulk_export"
+                  ? "border-indigo-300 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10"
+                  : "border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1]"
+              } ${bulkExportAvailable === false ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <p className={`text-sm font-medium ${discoveryMode === "bulk_export" ? "text-indigo-700 dark:text-indigo-300" : "text-gray-700 dark:text-gray-200"}`}>
+                Bulk Export
+                {bulkExportAvailable === false && <span className="text-[10px] text-red-500 ml-2">(gcloud not available)</span>}
+              </p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                Precise — extracts all attributes via Cloud Asset API
+              </p>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Scope Type</label>
@@ -220,6 +313,29 @@ export default function DiscoverPage() {
             />
           </div>
         </div>
+
+        {/* Cloud Asset API Status (Bulk Export mode only) */}
+        {discoveryMode === "bulk_export" && scopeId.trim() && (
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+            apiCheck.status === "checking"
+              ? "bg-gray-50 dark:bg-white/[0.02] text-gray-500 dark:text-gray-400"
+              : apiCheck.status === "done" && apiCheck.enabled
+              ? "bg-green-50 dark:bg-green-500/5 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-500/20"
+              : apiCheck.status === "done" && !apiCheck.enabled
+              ? "bg-red-50 dark:bg-red-500/5 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-500/20"
+              : ""
+          }`}>
+            {apiCheck.status === "checking" && (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Checking Cloud Asset API...</>
+            )}
+            {apiCheck.status === "done" && apiCheck.enabled && (
+              <><CheckCircle2 className="h-3.5 w-3.5 text-green-500" /> {apiCheck.message}</>
+            )}
+            {apiCheck.status === "done" && !apiCheck.enabled && (
+              <><AlertCircle className="h-3.5 w-3.5 text-red-500" /> {apiCheck.message}</>
+            )}
+          </div>
+        )}
 
         {/* Resource Types — Categorized Selector */}
         <ResourceTypeSelector
@@ -342,6 +458,49 @@ export default function DiscoverPage() {
             Generate Terraform Code
             <ArrowRight className="h-4 w-4 ml-1" />
           </a>
+        </div>
+      )}
+
+      {/* Bulk Export Results */}
+      {bulkResult && (
+        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-4 animate-slide-up">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <div>
+              <h3 className="text-sm font-semibold">Bulk Export Complete</h3>
+              <p className="text-xs text-muted-foreground">
+                {bulkResult.resources?.length || 0} resources exported across {Object.keys(bulkResult.tf_files || {}).length} files
+              </p>
+            </div>
+          </div>
+
+          {/* Files generated */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Generated Terraform Files
+            </h4>
+            {Object.entries(bulkResult.tf_files || {}).map(([filename, content]) => (
+              <div key={filename} className="rounded-lg border overflow-hidden">
+                <div className="px-3 py-1.5 bg-gray-50 dark:bg-white/[0.03] border-b flex items-center justify-between">
+                  <span className="text-xs font-mono text-gray-600 dark:text-gray-300">{filename}</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(content as string); }}
+                    className="text-[10px] text-primary hover:underline"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre className="p-3 text-xs font-mono overflow-x-auto bg-gray-50/50 dark:bg-white/[0.01] max-h-48 overflow-y-auto">
+                  <code>{(content as string).slice(0, 2000)}{(content as string).length > 2000 ? "\n..." : ""}</code>
+                </pre>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            This code was generated directly by GCP Cloud Asset API — it reflects the exact current state of your infrastructure.
+            You can copy it and run <code className="bg-gray-100 dark:bg-white/[0.05] px-1 rounded">terraform plan</code> to verify zero drift.
+          </p>
         </div>
       )}
     </div>

@@ -7,12 +7,14 @@ import {
   Search,
   Code,
   Settings,
+  RefreshCw,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Discover", href: "/discover", icon: Search },
   { name: "Generate", href: "/generate", icon: Code },
+  { name: "Drift Fix", href: "/drift", icon: RefreshCw },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

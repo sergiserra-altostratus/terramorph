@@ -44,7 +44,7 @@ interface ResourceTypeSelectorProps {
 
 export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: ResourceTypeSelectorProps) {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(Object.keys(RESOURCE_CATEGORIES))
+    new Set()
   );
 
   const totalCount = ALL_RESOURCE_TYPES.length;
@@ -112,7 +112,7 @@ export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: Reso
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
         {Object.entries(RESOURCE_CATEGORIES).map(([category, types]) => {
           const meta = CATEGORY_META[category] || CATEGORY_META["Compute"];
           const Icon = meta.icon;
@@ -121,14 +121,14 @@ export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: Reso
           const panelId = `cat-${category.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}`;
 
           return (
-            <div key={category} className="relative overflow-hidden rounded-xl border border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:border-primary/20">
+            <div key={category} className="relative overflow-hidden rounded-xl border border-border bg-card/50 backdrop-blur-sm transition-all duration-200 ease-in-out hover:border-primary/20">
               {/* Accent strip */}
               <div className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b ${meta.accent}`} />
 
               {/* Category Header */}
               <div
                 role="button" tabIndex={0} aria-expanded={isExpanded} aria-controls={panelId}
-                className="flex items-center justify-between px-4 py-3 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring rounded-t-xl"
+                className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${isExpanded ? "rounded-t-xl" : "rounded-xl"}`}
                 onClick={() => toggleCategory(category)}
                 onKeyDown={(e) => handleCategoryKeyDown(e, category)}
               >
@@ -154,7 +154,7 @@ export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: Reso
                   >
                     {state.allSelected ? <CheckSquare className="w-4 h-4 text-green-500" /> : state.partial ? <MinusSquare className="w-4 h-4 text-amber-500" /> : <Square className="w-4 h-4 text-muted-foreground" />}
                   </button>
-                  <div className="text-muted-foreground">
+                  <div className="text-muted-foreground transition-transform duration-200">
                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </div>
                 </div>

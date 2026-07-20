@@ -66,13 +66,13 @@ export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
 /** Resource types grouped by category for better UI organization */
 export const RESOURCE_CATEGORIES: Record<string, ResourceType[]> = {
   "Compute": ["compute_instance", "compute_disk", "compute_image", "compute_snapshot", "instance_template", "instance_group", "compute_reservation", "static_ip"],
-  "Networking": ["vpc_network", "firewall_rule", "load_balancer", "cloud_nat", "vpn_gateway", "compute_route", "health_check", "ssl_policy", "dns_policy", "vpc_connector"],
+  "Networking": ["vpc_network", "firewall_rule", "load_balancer", "cloud_nat", "vpn_gateway", "compute_route", "health_check", "ssl_policy", "dns_policy", "vpc_connector", "cloud_dns"],
   "Containers & Serverless": ["gke_cluster", "cloud_run", "cloud_function", "cloud_scheduler", "cloud_tasks"],
   "Storage & Databases": ["gcs_bucket", "cloud_sql", "spanner_instance", "bigquery_dataset", "memorystore_redis", "bigtable_instance", "filestore"],
   "Security & IAM": ["service_account", "iam_binding", "custom_role", "cloud_armor", "secret", "kms_keyring"],
   "Messaging & Integration": ["pubsub_topic", "pubsub_subscription", "api_gateway"],
   "Data & AI": ["dataflow_job", "vertex_ai_endpoint", "composer"],
-  "Observability": ["logging_sink", "monitoring_alert", "cloud_dns"],
+  "Observability": ["logging_sink", "monitoring_alert"],
   "CI/CD": ["artifact_registry"],
 };
 

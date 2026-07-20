@@ -30,8 +30,6 @@ _import_gen = ImportGenerator()
 @router.post("/generate/terraform", response_model=GenerationResult)
 async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     """Generate Terraform HCL code from discovered resources."""
-    from app.services.stats import track_generation
-
     result = get_job_results(request.job_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Job '{request.job_id}' not found")
@@ -81,9 +79,6 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     if request.options.include_import_script:
         import_content = _import_gen.generate(resources)
         files.append(GeneratedFile(filename="import.tf", content=import_content))
-
-    # Track usage statistics
-    track_generation(resources)
 
     # Apply AI cleaning if enabled
     if request.options.ai_clean:

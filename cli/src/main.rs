@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 
 mod commands;
 mod client;
@@ -10,11 +10,23 @@ mod output;
 #[command(version = "0.1.0")]
 struct Cli {
     /// Backend API URL
-    #[arg(long, default_value = "http://localhost:8000/api/v1", env = "TERRAMORPH_API_URL")]
+    #[arg(long, default_value = "http://localhost:8001/api/v1", env = "TERRAMORPH_API_URL")]
     api_url: String,
 
     #[command(subcommand)]
     command: Commands,
+}
+
+#[derive(Clone, ValueEnum)]
+enum DiscoveryMode {
+    Api,
+    BulkExport,
+}
+
+#[derive(Clone, ValueEnum)]
+enum GenerationStyle {
+    Flat,
+    Module,
 }
 
 #[derive(Subcommand)]
@@ -33,8 +45,12 @@ enum Commands {
         #[arg(long, group = "scope")]
         organization: Option<String>,
 
-        /// Resource types to discover (comma-separated)
-        #[arg(long, default_value = "compute_instance,vpc_network,gcs_bucket,cloud_sql,gke_cluster")]
+        /// Discovery mode: api (fast, parallel) or bulk-export (precise, uses gcloud)
+        #[arg(long, value_enum, default_value = "api")]
+        mode: DiscoveryMode,
+
+        /// Resource types to discover (comma-separated). Use 'all' for all supported types.
+        #[arg(long, default_value = "all")]
         types: String,
     },
 
@@ -48,6 +64,14 @@ enum Commands {
         #[arg(long, short, default_value = "./terraform")]
         output: String,
 
+        /// Generation style: flat (resource blocks) or module (official Google modules)
+        #[arg(long, value_enum, default_value = "flat")]
+        style: GenerationStyle,
+
+        /// Enable AI code cleaning (requires AI configured in Settings)
+        #[arg(long)]
+        ai_clean: bool,
+
         /// GCS bucket name for remote state (generates backend.tf)
         #[arg(long)]
         state_bucket: Option<String>,
@@ -57,6 +81,25 @@ enum Commands {
         state_prefix: Option<String>,
     },
 
+    /// Run drift detection and AI auto-fix
+    Drift {
+        /// Path to directory containing .tf files to check
+        #[arg(long, short)]
+        path: String,
+
+        /// GCS bucket for remote state (required)
+        #[arg(long)]
+        bucket: String,
+
+        /// State prefix in the bucket
+        #[arg(long, default_value = "terraform/state")]
+        prefix: String,
+
+        /// GCP project ID
+        #[arg(long)]
+        project: String,
+    },
+
     /// Check discovery job status
     Status {
         /// Job ID to check
@@ -64,7 +107,7 @@ enum Commands {
         job_id: String,
     },
 
-    /// Check backend health
+    /// Check backend health and configuration
     Health,
 }
 
@@ -74,11 +117,14 @@ async fn main() {
     let api = client::ApiClient::new(&cli.api_url);
 
     let result = match cli.command {
-        Commands::Discover { project, folder, organization, types } => {
-            commands::discover::run(&api, project, folder, organization, &types).await
+        Commands::Discover { project, folder, organization, mode, types } => {
+            commands::discover::run(&api, project, folder, organization, &types, mode).await
         }
-        Commands::Generate { job_id, output, state_bucket, state_prefix } => {
-            commands::generate::run(&api, &job_id, &output, state_bucket, state_prefix).await
+        Commands::Generate { job_id, output, style, ai_clean, state_bucket, state_prefix } => {
+            commands::generate::run(&api, &job_id, &output, style, ai_clean, state_bucket, state_prefix).await
+        }
+        Commands::Drift { path, bucket, prefix, project } => {
+            commands::drift::run(&api, &path, &bucket, &prefix, &project).await
         }
         Commands::Status { job_id } => {
             commands::status::run(&api, &job_id).await

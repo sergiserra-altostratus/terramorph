@@ -17,7 +17,6 @@ import {
   Waypoints,
   MemoryStick,
   ArrowRight,
-  BarChart3,
   Lock,
   Package,
   Key,
@@ -26,9 +25,7 @@ import {
   ChevronRight,
   BrainCircuit,
 } from "lucide-react";
-import { apiClient, type HealthResponse, type UsageStats } from "@/lib/api";
-import { RESOURCE_TYPE_LABELS } from "@/types";
-import type { ResourceType } from "@/types";
+import { apiClient, type HealthResponse } from "@/lib/api";
 
 const resourceCards = [
   { name: "Compute Engine", icon: Server, color: "from-blue-500 to-blue-600", description: "VMs and instances" },
@@ -61,18 +58,15 @@ interface AIInfo {
 
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [stats, setStats] = useState<UsageStats | null>(null);
   const [aiInfo, setAiInfo] = useState<AIInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       apiClient.getHealth().catch(() => null),
-      apiClient.getStats().catch(() => null),
       apiClient.getAISettings().catch(() => null),
-    ]).then(([h, s, ai]) => {
+    ]).then(([h, ai]) => {
       setHealth(h);
-      setStats(s);
       if (ai) {
         const configuredProviders = ai.providers.filter((p: any) => p.configured);
         setAiInfo({
@@ -189,83 +183,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-
-      {/* Usage Statistics */}
-      {stats && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 animate-slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="h-3.5 w-3.5" />
-              Generation Statistics
-            </h3>
-            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <span>
-                <span className="font-semibold text-gray-900 dark:text-white">{stats.total_generated}</span> resources generated
-              </span>
-              <span>
-                <span className="font-semibold text-gray-900 dark:text-white">{stats.total_jobs}</span> jobs run
-              </span>
-            </div>
-          </div>
-
-          {stats.total_generated === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="h-6 w-6 text-gray-300 dark:text-gray-600" />
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">No resources generated yet.</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                Run a discovery and generate Terraform code to see usage statistics here.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Bar Chart */}
-              <div className="space-y-2.5">
-                {Object.entries(stats.by_resource_type).slice(0, 8).map(([type, count]) => {
-                  const maxCount = Math.max(...Object.values(stats.by_resource_type));
-                  const percentage = (count / maxCount) * 100;
-                  const label = RESOURCE_TYPE_LABELS[type as ResourceType] || type.replace(/_/g, " ");
-                  return (
-                    <div key={type} className="flex items-center gap-3">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 w-32 truncate text-right">{label}</span>
-                      <div className="flex-1 h-6 bg-gray-100 dark:bg-white/[0.04] rounded-md overflow-hidden relative">
-                        <div
-                          className="h-full rounded-md bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700 ease-out"
-                          style={{ width: `${percentage}%` }}
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-gray-600 dark:text-gray-300">
-                          {count}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Recent Activity */}
-              {stats.recent_jobs.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.04]">
-                  <h4 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Recent Activity</h4>
-                  <div className="flex gap-1.5">
-                    {stats.recent_jobs.slice(-20).map((job, idx) => (
-                      <div key={idx} className="flex-1 group relative">
-                        <div
-                          className="w-full rounded-sm bg-gradient-to-t from-indigo-500 to-violet-500 opacity-50 hover:opacity-100 transition-opacity cursor-default"
-                          style={{ height: `${Math.max(8, Math.min(40, job.total_resources * 2))}px` }}
-                        />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[9px] px-1.5 py-0.5 z-10">
-                          {job.total_resources} resources
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
 
       {/* Supported Resources Grid */}
       <div className="animate-slide-up">

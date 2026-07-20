@@ -6,17 +6,6 @@ export interface HealthResponse {
   gcp_authenticated: boolean;
 }
 
-export interface UsageStats {
-  by_resource_type: Record<string, number>;
-  total_generated: number;
-  total_jobs: number;
-  recent_jobs: Array<{
-    timestamp: string;
-    total_resources: number;
-    types: Record<string, number>;
-  }>;
-}
-
 export interface AuthStatus {
   authenticated: boolean;
   project: string | null;
@@ -133,10 +122,6 @@ class ApiClient {
     return this.request("/health");
   }
 
-  async getStats(): Promise<UsageStats> {
-    return this.request("/stats");
-  }
-
   async getAuthStatus(): Promise<AuthStatus> {
     return this.request("/auth/status");
   }
@@ -190,6 +175,42 @@ class ApiClient {
 
   async removeAIProvider(provider: string): Promise<any> {
     return this.request(`/settings/ai/${provider}`, { method: "DELETE" });
+  }
+
+  async getDriftPrerequisites(): Promise<{ ai_configured: boolean; ai_provider: string | null; ready: boolean; missing: string[] }> {
+    return this.request("/drift/prerequisites");
+  }
+
+  async startDriftDetection(data: { tf_files: Record<string, string>; bucket: string; prefix: string; project_id: string }): Promise<{ job_id: string; status: string }> {
+    return this.request("/drift/start", { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async getDriftStatus(jobId: string): Promise<any> {
+    return this.request(`/drift/status/${jobId}`);
+  }
+
+  async getDriftResults(jobId: string): Promise<any> {
+    return this.request(`/drift/results/${jobId}`);
+  }
+
+  async getBulkExportAvailability(): Promise<{ available: boolean; resource_types: string[]; total_types: number }> {
+    return this.request("/bulk-export/available");
+  }
+
+  async checkCloudAssetAPI(projectId: string): Promise<{ enabled: boolean; message?: string; error?: string }> {
+    return this.request(`/bulk-export/check-api/${encodeURIComponent(projectId)}`);
+  }
+
+  async startBulkExport(data: { project_id: string; resource_types?: string[] }): Promise<{ job_id: string; status: string }> {
+    return this.request("/bulk-export/start", { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async getBulkExportStatus(jobId: string): Promise<any> {
+    return this.request(`/bulk-export/status/${jobId}`);
+  }
+
+  async getBulkExportResults(jobId: string): Promise<any> {
+    return this.request(`/bulk-export/results/${jobId}`);
   }
 
   getWebSocketUrl(jobId: string): string {

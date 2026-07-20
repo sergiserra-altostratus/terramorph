@@ -3,15 +3,26 @@ use std::fs;
 use std::path::Path;
 
 use crate::client::{ApiClient, BackendStateConfig, GenerationOptions, GenerationRequest};
+use crate::GenerationStyle;
 
 pub async fn run(
     api: &ApiClient,
     job_id: &str,
     output: &str,
+    style: GenerationStyle,
+    ai_clean: bool,
     state_bucket: Option<String>,
     state_prefix: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{} Generating Terraform code for job {}...", "●".green(), job_id);
+    let style_str = match style {
+        GenerationStyle::Flat => "flat",
+        GenerationStyle::Module => "module",
+    };
+
+    println!("{} Generating Terraform code...", "●".green());
+    println!("  Job ID: {}", job_id);
+    println!("  Style:  {}", style_str);
+    println!("  AI:     {}", if ai_clean { "enabled".green() } else { "disabled".normal() });
 
     let backend_state = state_bucket.map(|bucket| BackendStateConfig {
         bucket,
@@ -25,6 +36,8 @@ pub async fn run(
             include_provider_block: true,
             include_import_script: true,
             output_format: "per_resource_type".to_string(),
+            generation_style: style_str.to_string(),
+            ai_clean,
             backend_state,
         },
     };
@@ -53,8 +66,12 @@ pub async fn run(
     println!("\n{} Next steps:", "→".blue());
     println!("  1. cd {}", output);
     println!("  2. terraform init");
-    println!("  3. bash import.sh");
-    println!("  4. terraform plan");
+    println!("  3. terraform plan  (review import blocks)");
+    println!("  4. terraform apply (execute imports)");
+
+    if ai_clean {
+        println!("\n{} AI cleaning was applied to remove default values.", "✨".to_string().purple());
+    }
 
     Ok(())
 }

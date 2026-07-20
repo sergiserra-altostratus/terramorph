@@ -3,7 +3,6 @@
 from fastapi import APIRouter
 
 from app.core.credentials import check_authentication
-from app.services.stats import get_stats
 
 router = APIRouter()
 
@@ -23,9 +22,3 @@ async def health_check() -> dict:
 async def auth_status() -> dict:
     """Check GCP authentication status."""
     return check_authentication()
-
-
-@router.get("/stats")
-async def usage_stats() -> dict:
-    """Get resource generation usage statistics."""
-    return get_stats()
