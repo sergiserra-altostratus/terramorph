@@ -1,6 +1,20 @@
-# Terramorph
+<p align="center">
+  <img src="docs/images/terramorph_logo.png" alt="Terramorph" width="600">
+</p>
 
-**Reverse Terraform** — Discover existing GCP infrastructure, generate Terraform HCL code, and import resources into Terraform state.
+<p align="center">
+  <strong>Reverse Terraform</strong> — Discover existing GCP infrastructure, generate Terraform HCL code, and import resources into Terraform state.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/terraform-1.5+-purple?logo=terraform&logoColor=white" alt="Terraform">
+  <img src="https://img.shields.io/badge/GCP-Cloud-4285F4?logo=googlecloud&logoColor=white" alt="Google Cloud">
+  <img src="https://img.shields.io/badge/python-3.12+-blue?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/Rust-CLI-orange?logo=rust&logoColor=white" alt="Rust">
+</p>
+
+---
 
 ## Overview
 
