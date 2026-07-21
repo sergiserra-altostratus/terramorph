@@ -11,12 +11,17 @@ router = APIRouter()
 
 @router.post("/discovery/start")
 async def start_discovery_job(request: DiscoveryRequest) -> dict:
-    """Start a new resource discovery job.
+    """Start a new resource discovery job."""
+    from app.services.persistence import audit, record_job
+    from app.core.validation import validate_gcp_scope_id
 
-    Returns a job ID that can be used to track progress.
-    """
+    # Validate scope ID before it reaches subprocess
+    validate_gcp_scope_id(request.scope.type.value, request.scope.id)
+
     try:
         job_id = await start_discovery(request)
+        record_job(job_id, "discovery", "gcp", "running", {"scope": request.scope.model_dump(), "types": [t.value for t in request.resource_types]})
+        audit("discovery.started", "discovery", {"job_id": job_id, "scope_type": request.scope.type.value, "scope_id": request.scope.id})
         return {"job_id": job_id, "status": "running"}
     except CredentialError as e:
         raise HTTPException(status_code=401, detail=str(e))

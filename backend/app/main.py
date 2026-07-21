@@ -37,6 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Authentication middleware (disable with TERRAMORPH_AUTH_DISABLED=true)
+from app.core.auth import AuthMiddleware
+app.add_middleware(AuthMiddleware)
+
 # API routes
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(projects.router, prefix="/api/v1", tags=["projects"])

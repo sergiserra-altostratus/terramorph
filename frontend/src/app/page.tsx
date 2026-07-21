@@ -26,6 +26,7 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import { apiClient, type HealthResponse } from "@/lib/api";
+import { GCPLogo, AWSLogo } from "@/components/CloudProviderLogos";
 
 const resourceCards = [
   { name: "Compute Engine", icon: Server, color: "from-blue-500 to-blue-600", description: "VMs and instances" },
@@ -50,10 +51,71 @@ const resourceCards = [
   { name: "Cloud Scheduler", icon: Timer, color: "from-lime-600 to-lime-700", description: "Cron jobs" },
 ];
 
+const awsResourceCards = [
+  { name: "EC2 Instances", icon: Server, color: "from-orange-500 to-orange-600", description: "Virtual machines" },
+  { name: "VPCs & Subnets", icon: Globe, color: "from-blue-500 to-blue-600", description: "Networking" },
+  { name: "Security Groups", icon: Shield, color: "from-red-500 to-red-600", description: "Firewall rules" },
+  { name: "S3 Buckets", icon: HardDrive, color: "from-green-500 to-green-600", description: "Object storage" },
+  { name: "RDS Instances", icon: Database, color: "from-blue-600 to-indigo-600", description: "Managed databases" },
+  { name: "EKS Clusters", icon: Container, color: "from-purple-500 to-purple-600", description: "Kubernetes" },
+  { name: "Lambda Functions", icon: Zap, color: "from-amber-500 to-amber-600", description: "Serverless compute" },
+  { name: "IAM Roles", icon: UserCog, color: "from-slate-500 to-slate-600", description: "Identity & access" },
+  { name: "Route53 Zones", icon: Globe, color: "from-violet-500 to-violet-600", description: "DNS management" },
+  { name: "CloudFront", icon: Network, color: "from-teal-500 to-teal-600", description: "CDN distributions" },
+  { name: "Load Balancers", icon: Waypoints, color: "from-cyan-500 to-cyan-600", description: "ALB/NLB" },
+];
+
 interface AIInfo {
   configured: boolean;
   active: string | null;
   count: number;
+}
+
+function RecentActivity() {
+  const [jobs, setJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiClient.request<any>("/history?limit=5")
+      .then((data) => setJobs(data.jobs || []))
+      .catch(() => {});
+  }, []);
+
+  if (jobs.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 animate-slide-up">
+      <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight mb-4">
+        Recent Activity
+      </h3>
+      <div className="space-y-2">
+        {jobs.map((job) => (
+          <div key={job.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/[0.04] last:border-0">
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${
+                job.status === "completed" ? "bg-green-500" : job.status === "running" ? "bg-amber-500 animate-pulse" : "bg-red-500"
+              }`} />
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                  {job.type} <span className="text-xs text-muted-foreground font-normal">({job.provider})</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {job.resources_found > 0 && `${job.resources_found} resources · `}
+                  {job.created_at?.replace("T", " ").slice(0, 16)}
+                </p>
+              </div>
+            </div>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              job.status === "completed" ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
+              : job.status === "running" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
+            }`}>
+              {job.status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -209,29 +271,65 @@ export default function DashboardPage() {
       </div>
 
       {/* Supported Resources Grid */}
-      <div className="animate-slide-up">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight mb-4">
+      <div className="animate-slide-up space-y-6">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
           Supported Resources
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 stagger-children">
-          {resourceCards.map((card) => (
-            <div
-              key={card.name}
-              className="group relative rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-white/[0.1] hover:shadow-md cursor-default"
-            >
-              {/* Subtle top accent line */}
-              <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="flex items-center gap-3">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${card.color} shadow-sm`}>
-                  <card.icon className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{card.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{card.description}</p>
+
+        {/* GCP */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <GCPLogo className="h-4 w-4" />
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Google Cloud Platform</span>
+            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{resourceCards.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {resourceCards.map((card) => (
+              <div
+                key={card.name}
+                className="group relative rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-white/[0.1] hover:shadow-md cursor-default"
+              >
+                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${card.color} shadow-sm`}>
+                    <card.icon className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{card.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{card.description}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        {/* AWS */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <AWSLogo className="h-4 w-4" />
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amazon Web Services</span>
+            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{awsResourceCards.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {awsResourceCards.map((card) => (
+              <div
+                key={card.name}
+                className="group relative rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-white/[0.1] hover:shadow-md cursor-default"
+              >
+                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${card.color} shadow-sm`}>
+                    <card.icon className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{card.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{card.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -272,6 +370,9 @@ export default function DashboardPage() {
           </li>
         </ol>
       </div>
+
+      {/* Recent Activity */}
+      <RecentActivity />
     </div>
   );
 }

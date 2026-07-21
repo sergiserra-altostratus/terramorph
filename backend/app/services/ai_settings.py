@@ -7,6 +7,7 @@ survive container restarts.
 from pydantic import BaseModel, Field
 from app.services.ai_cleaner import AIProvider, DEFAULT_MODELS, PROVIDER_INSTRUCTIONS, AVAILABLE_MODELS
 from app.services.persistence import load, save
+from app.core.encryption import encrypt, decrypt
 
 SETTINGS_FILE = "ai_settings.json"
 
@@ -29,10 +30,14 @@ class AISettings(BaseModel):
 
 
 def _load_settings() -> AISettings:
-    """Load settings from disk."""
+    """Load settings from disk and decrypt API keys."""
     data = load(SETTINGS_FILE)
     if data:
         try:
+            # Decrypt API keys after loading
+            for provider_key, config in data.get("providers", {}).items():
+                if isinstance(config, dict) and config.get("api_key"):
+                    config["api_key"] = decrypt(config["api_key"])
             return AISettings(**data)
         except Exception:
             return AISettings()
@@ -40,8 +45,13 @@ def _load_settings() -> AISettings:
 
 
 def _save_settings(settings: AISettings) -> None:
-    """Save settings to disk."""
-    save(SETTINGS_FILE, settings.model_dump(mode="json"))
+    """Save settings to disk with encrypted API keys."""
+    data = settings.model_dump(mode="json")
+    # Encrypt API keys before saving
+    for provider_key, config in data.get("providers", {}).items():
+        if config.get("api_key"):
+            config["api_key"] = encrypt(config["api_key"])
+    save(SETTINGS_FILE, data)
 
 
 # Load on module init

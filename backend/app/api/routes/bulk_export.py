@@ -80,18 +80,17 @@ async def bulk_export_info() -> dict:
 
 @router.post("/bulk-export/start")
 async def start_bulk_export_job(request: BulkExportRequest) -> dict:
-    """Start a bulk export discovery job.
+    """Start a bulk export discovery job."""
+    from app.core.validation import validate_gcp_project_id
 
-    Requires gcloud CLI to be available in the environment.
-    """
     if not is_gcloud_available():
         raise HTTPException(
             status_code=503,
             detail="gcloud CLI is not available. Bulk Export requires the Google Cloud SDK installed in the backend.",
         )
 
-    if not request.project_id.strip():
-        raise HTTPException(status_code=400, detail="Project ID is required.")
+    # Validate project ID before it reaches gcloud subprocess
+    validate_gcp_project_id(request.project_id)
 
     job_id = await start_bulk_export(
         project_id=request.project_id.strip(),

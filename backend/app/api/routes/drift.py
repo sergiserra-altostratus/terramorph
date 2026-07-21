@@ -47,6 +47,12 @@ async def start_drift(request: DriftDetectionRequest) -> dict:
             detail="Remote backend (GCS bucket) is required for drift detection. Specify a bucket name.",
         )
 
+    # Validate inputs that reach subprocess (terraform init connects to this bucket)
+    from app.core.validation import validate_bucket_name, validate_safe_string
+    validate_bucket_name(request.bucket)
+    validate_safe_string(request.prefix, "prefix")
+    validate_safe_string(request.project_id, "project_id")
+
     if not request.tf_files:
         raise HTTPException(
             status_code=400,

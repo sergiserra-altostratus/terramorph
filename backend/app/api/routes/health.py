@@ -9,13 +9,23 @@ router = APIRouter()
 
 @router.get("/health")
 async def health_check() -> dict:
-    """Health check endpoint."""
+    """Health check endpoint (public - no auth required)."""
     auth_status = check_authentication()
     return {
         "status": "ok",
         "version": "0.1.0",
         "gcp_authenticated": auth_status["authenticated"],
     }
+
+
+@router.get("/health/token")
+async def get_api_token() -> dict:
+    """Get the API token (shown only in health endpoint for initial setup)."""
+    from app.core.auth import get_or_create_token, AUTH_DISABLED
+    if AUTH_DISABLED:
+        return {"auth_enabled": False, "message": "Authentication is disabled (TERRAMORPH_AUTH_DISABLED=true)"}
+    token = get_or_create_token()
+    return {"auth_enabled": True, "token": token}
 
 
 @router.get("/onboarding/status")
@@ -51,3 +61,19 @@ async def onboarding_status() -> dict:
 async def auth_status() -> dict:
     """Check GCP authentication status."""
     return check_authentication()
+
+
+@router.get("/history")
+async def job_history(limit: int = 20, type: str | None = None) -> dict:
+    """Get job history."""
+    from app.services.persistence import get_job_history
+    jobs = get_job_history(limit=limit, job_type=type)
+    return {"jobs": jobs, "total": len(jobs)}
+
+
+@router.get("/audit")
+async def audit_log(limit: int = 50, category: str | None = None) -> dict:
+    """Get audit log entries."""
+    from app.services.persistence import get_audit_log
+    entries = get_audit_log(limit=limit, category=category)
+    return {"entries": entries, "total": len(entries)}

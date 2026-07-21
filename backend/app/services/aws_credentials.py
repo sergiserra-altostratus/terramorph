@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.core.logging import get_logger
 from app.services.persistence import load, save
+from app.core.encryption import encrypt, decrypt
 
 logger = get_logger("aws.credentials")
 
@@ -38,10 +39,14 @@ class AWSCredentials(BaseModel):
 
 
 def _load_aws_settings() -> AWSCredentials:
-    """Load AWS settings from disk."""
+    """Load AWS settings from disk and decrypt secrets."""
     data = load(AWS_SETTINGS_FILE)
     if data:
         try:
+            if data.get("secret_access_key"):
+                data["secret_access_key"] = decrypt(data["secret_access_key"])
+            if data.get("session_token"):
+                data["session_token"] = decrypt(data["session_token"])
             return AWSCredentials(**data)
         except Exception:
             return AWSCredentials()
@@ -49,8 +54,13 @@ def _load_aws_settings() -> AWSCredentials:
 
 
 def _save_aws_settings(settings: AWSCredentials) -> None:
-    """Save AWS settings to disk."""
-    save(AWS_SETTINGS_FILE, settings.model_dump())
+    """Save AWS settings to disk with encrypted secrets."""
+    data = settings.model_dump()
+    if data.get("secret_access_key"):
+        data["secret_access_key"] = encrypt(data["secret_access_key"])
+    if data.get("session_token"):
+        data["session_token"] = encrypt(data["session_token"])
+    save(AWS_SETTINGS_FILE, data)
 
 
 # Load on module init

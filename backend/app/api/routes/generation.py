@@ -30,6 +30,8 @@ _import_gen = ImportGenerator()
 @router.post("/generate/terraform", response_model=GenerationResult)
 async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     """Generate Terraform HCL code from discovered resources."""
+    from app.services.persistence import audit, record_job
+
     result = get_job_results(request.job_id)
     if not result:
         raise HTTPException(status_code=404, detail=f"Job '{request.job_id}' not found")
@@ -113,6 +115,15 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
             formatted_files.append(GeneratedFile(filename=f.filename, content=fmt_content(f.content)))
         else:
             formatted_files.append(f)
+
+    audit("generation.completed", "generation", {
+        "job_id": request.job_id,
+        "total_resources": len(resources),
+        "files": len(formatted_files),
+        "style": request.options.generation_style.value,
+        "ai_clean": request.options.ai_clean,
+    })
+    record_job(request.job_id, "generation", "gcp", "completed", {"resources": len(resources), "files": len(formatted_files)})
 
     return GenerationResult(
         files=formatted_files,

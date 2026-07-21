@@ -47,7 +47,8 @@ async def get_ai_settings() -> dict:
 @router.post("/settings/ai/configure")
 async def configure_provider(request: ConfigureProviderRequest) -> dict:
     """Configure an AI provider with API key and optional settings."""
-    # Ollama doesn't require API key
+    from app.services.persistence import audit
+
     if request.provider != AIProvider.OLLAMA and not request.api_key:
         raise HTTPException(status_code=400, detail="API key is required for this provider")
 
@@ -58,6 +59,7 @@ async def configure_provider(request: ConfigureProviderRequest) -> dict:
         endpoint_url=request.endpoint_url,
     )
 
+    audit("settings.ai_configured", "settings", {"provider": request.provider.value, "model": request.model})
     return {"status": "configured", "provider": request.provider.value}
 
 
