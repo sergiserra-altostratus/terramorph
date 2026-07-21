@@ -287,4 +287,26 @@ impl ApiClient {
         Ok(self.client.get(format!("{}/drift/results/{}", self.base_url, job_id))
             .send().await?.json().await?)
     }
+
+    // AWS
+    pub async fn get_aws_status(&self) -> Result<AIStatus, Box<dyn std::error::Error>> {
+        Ok(self.client.get(format!("{}/settings/aws/status", self.base_url))
+            .send().await?.json().await?)
+    }
+
+    pub async fn start_aws_discovery(&self, resource_types: &[String]) -> Result<DiscoveryJob, Box<dyn std::error::Error>> {
+        Ok(self.client.post(format!("{}/aws/discovery/start", self.base_url))
+            .json(&serde_json::json!({"resource_types": resource_types}))
+            .send().await?.json().await?)
+    }
+
+    pub async fn get_aws_discovery_status(&self, job_id: &str) -> Result<DiscoveryStatus, Box<dyn std::error::Error>> {
+        Ok(self.client.get(format!("{}/aws/discovery/status/{}", self.base_url, job_id))
+            .send().await?.json().await?)
+    }
+
+    pub async fn get_aws_discovery_results(&self, job_id: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        Ok(self.client.get(format!("{}/aws/discovery/results/{}", self.base_url, job_id))
+            .send().await?.json().await?)
+    }
 }

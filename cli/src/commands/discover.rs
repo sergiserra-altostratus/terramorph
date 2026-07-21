@@ -4,7 +4,7 @@ use std::time::Duration;
 use tabled::{Table, Tabled};
 
 use crate::client::ApiClient;
-use crate::DiscoveryMode;
+use crate::{CloudProvider, DiscoveryMode};
 
 #[derive(Tabled)]
 struct ResourceRow {
@@ -20,6 +20,93 @@ struct ResourceRow {
 
 pub async fn run(
     api: &ApiClient,
+    provider: CloudProvider,
+    project: Option<String>,
+    folder: Option<String>,
+    organization: Option<String>,
+    types: &str,
+    mode: DiscoveryMode,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match provider {
+        CloudProvider::Gcp => run_gcp(api, project, folder, organization, types, mode).await,
+        CloudProvider::Aws => run_aws(api, types).await,
+    }
+}
+
+async fn run_aws(
+    api: &ApiClient,
+    types: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{} Starting AWS discovery...", "●".green());
+
+    // Check AWS is configured
+    let aws_status = api.get_aws_status().await?;
+    if !aws_status.configured {
+        return Err("AWS credentials not configured. Run the web UI Settings to configure them.".into());
+    }
+
+    let resource_types: Vec<String> = if types == "all" {
+        vec![]
+    } else {
+        types.split(',').map(|s| s.trim().to_string()).collect()
+    };
+
+    let job = api.start_aws_discovery(&resource_types).await?;
+    println!("{} Job ID: {}", "●".blue(), job.job_id);
+
+    let pb = ProgressBar::new(100);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{bar:40.yellow/orange}] {msg}")
+            .unwrap()
+            .progress_chars("█▓░"),
+    );
+
+    loop {
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        let status = api.get_aws_discovery_status(&job.job_id).await?;
+
+        let pct = if status.progress.total > 0 {
+            (status.progress.completed as u64 * 100) / status.progress.total as u64
+        } else { 0 };
+        pb.set_position(pct);
+        pb.set_message(status.progress.message.clone());
+
+        match status.status.as_str() {
+            "completed" => { pb.finish_with_message("AWS discovery complete!"); break; }
+            "failed" => {
+                pb.finish_with_message("AWS discovery failed!");
+                return Err(status.error.unwrap_or("Unknown error".to_string()).into());
+            }
+            _ => {}
+        }
+    }
+
+    let results = api.get_aws_discovery_results(&job.job_id).await?;
+    let resource_count = results.resources.len();
+    println!("\n{} Found {} AWS resources:\n", "✓".green().bold(), resource_count.to_string().bold());
+
+    let rows: Vec<ResourceRow> = results.resources.iter().filter_map(|r| {
+        Some(ResourceRow {
+            name: r.get("name")?.as_str()?.to_string(),
+            resource_type: r.get("terraform_resource_type")?.as_str()?.to_string(),
+            project: r.get("project")?.as_str()?.to_string(),
+            location: r.get("location")?.as_str().unwrap_or("").to_string(),
+        })
+    }).collect();
+
+    if !rows.is_empty() {
+        let table = Table::new(rows).to_string();
+        println!("{}", table);
+    }
+
+    println!("\n{} To generate Terraform code, run:", "→".blue());
+    println!("  terramorph generate --job-id {}", job.job_id);
+    Ok(())
+}
+
+async fn run_gcp(
+    api: &ApiClient,
     project: Option<String>,
     folder: Option<String>,
     organization: Option<String>,
@@ -33,7 +120,7 @@ pub async fn run(
     } else if let Some(o) = organization {
         ("organization".to_string(), o)
     } else {
-        return Err("Must specify --project, --folder, or --organization".into());
+        return Err("Must specify --project, --folder, or --organization for GCP".into());
     };
 
     match mode {

@@ -7,6 +7,8 @@ import type { DiscoveryStatus, DiscoveryResult } from "@/lib/api";
 import { ALL_RESOURCE_TYPES, RESOURCE_TYPE_LABELS } from "@/types";
 import type { ResourceType, ScopeType } from "@/types";
 import { ResourceTypeSelector } from "@/components/ResourceTypeSelector";
+import { AWSResourceTypeSelector } from "@/components/AWSResourceTypeSelector";
+import { GCPLogo, AWSLogo } from "@/components/CloudProviderLogos";
 
 interface RecentScope {
   type: ScopeType;
@@ -43,9 +45,12 @@ function removeRecentScope(type: ScopeType, id: string): RecentScope[] {
 }
 
 export default function DiscoverPage() {
+  const [cloudProvider, setCloudProvider] = useState<"gcp" | "aws">("gcp");
   const [scopeType, setScopeType] = useState<ScopeType>("project");
   const [scopeId, setScopeId] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<ResourceType[]>([]);
+  const [awsResourceTypes, setAwsResourceTypes] = useState<string[]>([]);
+  const [awsConfigured, setAwsConfigured] = useState<boolean>(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<DiscoveryStatus | null>(null);
   const [result, setResult] = useState<DiscoveryResult | null>(null);
@@ -62,6 +67,9 @@ export default function DiscoverPage() {
     apiClient.getBulkExportAvailability()
       .then((r) => setBulkExportAvailable(r.available))
       .catch(() => setBulkExportAvailable(false));
+    apiClient.getAWSStatus()
+      .then((r) => setAwsConfigured(r.configured))
+      .catch(() => setAwsConfigured(false));
   }, []);
 
   // Check Cloud Asset API when mode is bulk_export and project ID changes
@@ -93,6 +101,40 @@ export default function DiscoverPage() {
   };
 
   const startDiscovery = async () => {
+    if (cloudProvider === "aws") {
+      if (!awsConfigured) { setError("AWS credentials not configured. Go to Settings."); return; }
+      setError(null); setIsRunning(true); setResult(null); setBulkResult(null);
+      try {
+        const job = await apiClient.startAWSDiscovery({ resource_types: awsResourceTypes });
+        setJobId(job.job_id);
+        const pollInterval = setInterval(async () => {
+          try {
+            const s = await apiClient.getAWSDiscoveryStatus(job.job_id);
+            setStatus(s);
+            if (s.status === "completed") {
+              clearInterval(pollInterval);
+              const r = await apiClient.getAWSDiscoveryResults(job.job_id);
+              setResult(r);
+              setIsRunning(false);
+            } else if (s.status === "failed") {
+              clearInterval(pollInterval);
+              setError("AWS discovery failed");
+              setIsRunning(false);
+            }
+          } catch (e) {
+            clearInterval(pollInterval);
+            setError(e instanceof Error ? e.message : "Status check failed");
+            setIsRunning(false);
+          }
+        }, 2000);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to start AWS discovery");
+        setIsRunning(false);
+      }
+      return;
+    }
+
+    // GCP Discovery
     if (!scopeId.trim()) { setError("Please enter a scope ID"); return; }
     setError(null); setIsRunning(true); setResult(null); setBulkResult(null);
 
@@ -239,14 +281,66 @@ export default function DiscoverPage() {
         </div>
       )}
 
+      {/* Cloud Provider Selector */}
+      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+          Cloud Provider
+        </h3>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setCloudProvider("gcp")}
+            disabled={isRunning}
+            className={`flex-1 flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-150 ${
+              cloudProvider === "gcp"
+                ? "border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10"
+                : "border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1]"
+            }`}
+          >
+            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+              <GCPLogo className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <p className={`text-sm font-medium ${cloudProvider === "gcp" ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-200"}`}>Google Cloud</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">GCP resources via ADC</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setCloudProvider("aws")}
+            disabled={isRunning}
+            className={`flex-1 flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-150 ${
+              cloudProvider === "aws"
+                ? "border-orange-300 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10"
+                : "border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1]"
+            }`}
+          >
+            <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
+              <AWSLogo className="h-5 w-5" />
+            </div>
+            <div className="text-left">
+              <p className={`text-sm font-medium ${cloudProvider === "aws" ? "text-orange-700 dark:text-orange-300" : "text-gray-700 dark:text-gray-200"}`}>Amazon Web Services</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                {awsConfigured ? "Configured" : "Not configured — set up in Settings"}
+              </p>
+            </div>
+          </button>
+        </div>
+        {cloudProvider === "aws" && !awsConfigured && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>AWS credentials required.</span>
+            <a href="/settings" className="text-primary hover:underline">Configure in Settings →</a>
+          </div>
+        )}
+      </div>
+
       {/* Scope Selection */}
       <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           Discovery Scope
         </h3>
 
-        {/* Discovery Mode Selector */}
-        <div>
+        {/* Discovery Mode Selector (GCP only) */}
+        {cloudProvider === "gcp" && <div>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Discovery Mode</label>
           <div className="flex gap-2">
             <button
@@ -283,39 +377,60 @@ export default function DiscoverPage() {
               </p>
             </button>
           </div>
-        </div>
+        </div>}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Scope Type</label>
-            <select
-              value={scopeType}
-              onChange={(e) => setScopeType(e.target.value as ScopeType)}
-              className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
-              disabled={isRunning}
-            >
-              <option value="project">Project</option>
-              <option value="folder">Folder</option>
-              <option value="organization">Organization</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-              {scopeType === "project" ? "Project ID" : scopeType === "folder" ? "Folder ID" : "Organization ID"}
-            </label>
-            <input
-              type="text"
-              value={scopeId}
-              onChange={(e) => setScopeId(e.target.value)}
-              placeholder={scopeType === "project" ? "my-gcp-project" : "123456789"}
-              className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
-              disabled={isRunning}
-            />
-          </div>
+          {cloudProvider === "gcp" ? (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Scope Type</label>
+                <select
+                  value={scopeType}
+                  onChange={(e) => setScopeType(e.target.value as ScopeType)}
+                  className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+                  disabled={isRunning}
+                >
+                  <option value="project">Project</option>
+                  <option value="folder">Folder</option>
+                  <option value="organization">Organization</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                  {scopeType === "project" ? "Project ID" : scopeType === "folder" ? "Folder ID" : "Organization ID"}
+                </label>
+                <input
+                  type="text"
+                  value={scopeId}
+                  onChange={(e) => setScopeId(e.target.value)}
+                  placeholder={scopeType === "project" ? "my-gcp-project" : "123456789"}
+                  className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+                  disabled={isRunning}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Scope</label>
+                <div className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.02] px-3 py-2.5 text-sm text-gray-600 dark:text-gray-300">
+                  Account
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                  AWS Region
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Uses the region configured in Settings. Discovery will scan all resources in that region.
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Cloud Asset API Status (Bulk Export mode only) */}
-        {discoveryMode === "bulk_export" && scopeId.trim() && (
+        {/* Cloud Asset API Status (GCP Bulk Export mode only) */}
+        {cloudProvider === "gcp" && discoveryMode === "bulk_export" && scopeId.trim() && (
           <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
             apiCheck.status === "checking"
               ? "bg-gray-50 dark:bg-white/[0.02] text-gray-500 dark:text-gray-400"
@@ -337,17 +452,28 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {/* Resource Types — Categorized Selector */}
-        <ResourceTypeSelector
-          selectedTypes={selectedTypes}
-          onChange={setSelectedTypes}
-          disabled={isRunning}
-        />
+        {/* Resource Types — GCP Categorized Selector */}
+        {cloudProvider === "gcp" && (
+          <ResourceTypeSelector
+            selectedTypes={selectedTypes}
+            onChange={setSelectedTypes}
+            disabled={isRunning}
+          />
+        )}
 
-        {/* Start Button — premium feel */}
+        {/* Resource Types — AWS Categorized Selector */}
+        {cloudProvider === "aws" && (
+          <AWSResourceTypeSelector
+            selectedTypes={awsResourceTypes}
+            onChange={setAwsResourceTypes}
+            disabled={isRunning}
+          />
+        )}
+
+        {/* Start Button */}
         <button
           onClick={startDiscovery}
-          disabled={isRunning || selectedTypes.length === 0}
+          disabled={isRunning || (cloudProvider === "gcp" && selectedTypes.length === 0) || (cloudProvider === "aws" && (!awsConfigured || awsResourceTypes.length === 0))}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
         >
           {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}

@@ -1,0 +1,18 @@
+resource "aws_instance" "{{ resource.terraform_resource_name }}" {
+  ami           = "{{ attrs.ami }}"
+  instance_type = "{{ attrs.instance_type }}"
+{% if attrs.subnet_id %}
+  subnet_id     = "{{ attrs.subnet_id }}"
+{% endif %}
+{% if attrs.key_name %}
+  key_name      = "{{ attrs.key_name }}"
+{% endif %}
+
+{% if attrs.tags %}
+  tags = {
+{% for key, value in attrs.tags.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

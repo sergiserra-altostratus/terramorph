@@ -11,9 +11,12 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { PROVIDER_LOGOS } from "@/components/ProviderLogos";
+import { AWSLogo } from "@/components/CloudProviderLogos";
 
 interface ProviderInfo {
   provider: string;
@@ -36,6 +39,139 @@ interface AISettingsData {
   providers: ProviderInfo[];
 }
 
+function AWSCredentialsSection() {
+  const [awsSettings, setAwsSettings] = useState<any>(null);
+  const [awsForm, setAwsForm] = useState({ accessKeyId: "", secretKey: "", region: "us-east-1", sessionToken: "" });
+  const [awsSaving, setAwsSaving] = useState(false);
+  const [awsVerify, setAwsVerify] = useState<any>(null);
+  const [awsMsg, setAwsMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    apiClient.getAWSSettings().then(setAwsSettings).catch(() => null);
+  }, []);
+
+  const configureAWS = async () => {
+    if (!awsForm.accessKeyId || !awsForm.secretKey) { setAwsMsg({ type: "error", text: "Access Key ID and Secret are required" }); return; }
+    setAwsSaving(true); setAwsMsg(null);
+    try {
+      await apiClient.configureAWS({ access_key_id: awsForm.accessKeyId, secret_access_key: awsForm.secretKey, region: awsForm.region, session_token: awsForm.sessionToken });
+      setAwsMsg({ type: "success", text: "AWS credentials configured successfully" });
+      const updated = await apiClient.getAWSSettings();
+      setAwsSettings(updated);
+      setAwsForm({ accessKeyId: "", secretKey: "", region: awsForm.region, sessionToken: "" });
+    } catch (e) { setAwsMsg({ type: "error", text: e instanceof Error ? e.message : "Failed" }); }
+    finally { setAwsSaving(false); }
+  };
+
+  const verifyAWS = async () => {
+    try {
+      const result = await apiClient.verifyAWS();
+      setAwsVerify(result);
+    } catch { setAwsVerify({ authenticated: false, error: "Verification failed" }); }
+  };
+
+  const removeAWS = async () => {
+    if (!confirm("Remove AWS credentials?")) return;
+    await apiClient.removeAWS();
+    setAwsSettings({ ...awsSettings, configured: false, access_key_id_masked: "" });
+    setAwsVerify(null);
+    setAwsMsg({ type: "success", text: "AWS credentials removed" });
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/50 p-5 space-y-4">
+      {/* Status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${awsSettings?.configured ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`} />
+          <span className="text-sm font-medium">
+            {awsSettings?.configured ? "Configured" : "Not Configured"}
+          </span>
+          {awsSettings?.configured && (
+            <span className="text-[10px] text-muted-foreground">
+              Key: {awsSettings.access_key_id_masked} · Region: {awsSettings.region}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {awsSettings?.configured && (
+            <>
+              <button onClick={verifyAWS} className="text-xs text-primary hover:text-primary/80 px-2 py-1 rounded hover:bg-accent transition-colors">
+                Verify
+              </button>
+              <button onClick={removeAWS} className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">
+                <Trash2 className="h-3 w-3" /> Remove
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Verify result */}
+      {awsVerify && (
+        <div className={`rounded-lg p-3 text-xs ${awsVerify.authenticated ? "bg-green-50 dark:bg-green-500/5 text-green-700 dark:text-green-300" : "bg-red-50 dark:bg-red-500/5 text-red-700 dark:text-red-300"}`}>
+          {awsVerify.authenticated
+            ? `✓ Authenticated — Account: ${awsVerify.account} | ARN: ${awsVerify.arn}`
+            : `✗ Authentication failed: ${awsVerify.error}`}
+        </div>
+      )}
+
+      {/* Message */}
+      {awsMsg && (
+        <div className={`rounded-lg p-2.5 text-xs ${awsMsg.type === "success" ? "bg-green-50 dark:bg-green-500/5 text-green-700 dark:text-green-300" : "bg-red-50 dark:bg-red-500/5 text-red-700 dark:text-red-300"}`}>
+          {awsMsg.text}
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="rounded-lg bg-muted/50 p-3">
+        <p className="text-xs font-medium mb-2">Setup Instructions:</p>
+        <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+          <li>Go to AWS Console → IAM → Users → Create user</li>
+          <li>Attach the <code className="bg-muted px-1 rounded">ReadOnlyAccess</code> managed policy</li>
+          <li>Go to Security credentials → Create access key</li>
+          <li>Copy the Access Key ID and Secret Access Key below</li>
+        </ol>
+        <a href="https://console.aws.amazon.com/iam/home#/users" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline">
+          Open AWS IAM Console <ExternalLink className="h-3 w-3" />
+        </a>
+      </div>
+
+      {/* Form */}
+      <div className="grid gap-3">
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Access Key ID</label>
+          <input type="text" value={awsForm.accessKeyId} onChange={(e) => setAwsForm({ ...awsForm, accessKeyId: e.target.value })} placeholder="AKIA..." className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Secret Access Key</label>
+          <input type="password" value={awsForm.secretKey} onChange={(e) => setAwsForm({ ...awsForm, secretKey: e.target.value })} placeholder="Your secret key" className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Region</label>
+            <select value={awsForm.region} onChange={(e) => setAwsForm({ ...awsForm, region: e.target.value })} className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none">
+              {(awsSettings?.regions || ["us-east-1","us-west-2","eu-west-1","eu-central-1"]).map((r: string) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">Session Token <span className="text-muted-foreground/50">(optional)</span></label>
+            <input type="password" value={awsForm.sessionToken} onChange={(e) => setAwsForm({ ...awsForm, sessionToken: e.target.value })} placeholder="For temporary credentials" className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* Save */}
+      <button onClick={configureAWS} disabled={awsSaving} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all">
+        {awsSaving ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" /> : <Check className="h-3.5 w-3.5" />}
+        Save AWS Credentials
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AISettingsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +179,8 @@ export default function SettingsPage() {
   const [formState, setFormState] = useState<Record<string, { apiKey: string; model: string; endpoint: string }>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [awsSectionOpen, setAwsSectionOpen] = useState(false);
+  const [aiSectionOpen, setAiSectionOpen] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -178,12 +316,57 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Provider List */}
-      <div className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-          <BrainCircuit className="h-3.5 w-3.5" />
-          AI Providers
-        </h3>
+      {/* Cloud Providers */}
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div
+          role="button" tabIndex={0} aria-expanded={awsSectionOpen}
+          className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+          onClick={() => setAwsSectionOpen(!awsSectionOpen)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAwsSectionOpen(!awsSectionOpen); } }}
+        >
+          <div className="flex items-center gap-3">
+            <AWSLogo className="h-5 w-5" />
+            <span className="text-sm font-semibold">AWS Credentials</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${settings ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
+              {/* We check awsSectionOpen to re-read, but status comes from AWSCredentialsSection internally */}
+              Cloud Provider
+            </span>
+          </div>
+          <div className="text-muted-foreground transition-transform duration-200">
+            {awsSectionOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+        </div>
+        {awsSectionOpen && (
+          <div className="px-5 pb-5 border-t border-border/50">
+            <div className="pt-4">
+              <AWSCredentialsSection />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* AI Provider List */}
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div
+          role="button" tabIndex={0} aria-expanded={aiSectionOpen}
+          className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
+          onClick={() => setAiSectionOpen(!aiSectionOpen)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAiSectionOpen(!aiSectionOpen); } }}
+        >
+          <div className="flex items-center gap-3">
+            <BrainCircuit className="h-5 w-5 text-violet-500" />
+            <span className="text-sm font-semibold">AI Providers</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${settings?.is_configured ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" : "bg-muted text-muted-foreground"}`}>
+              {settings?.is_configured ? `Active: ${settings.active_provider}` : "Not configured"}
+            </span>
+          </div>
+          <div className="text-muted-foreground transition-transform duration-200">
+            {aiSectionOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+        </div>
+        {aiSectionOpen && (
+          <div className="px-5 pb-5 border-t border-border/50">
+            <div className="pt-4 space-y-3">
 
         {settings?.providers.map((provider) => (
           <div
@@ -348,6 +531,9 @@ export default function SettingsPage() {
             )}
           </div>
         ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

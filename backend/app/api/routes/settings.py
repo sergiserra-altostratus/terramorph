@@ -11,6 +11,14 @@ from app.services.ai_settings import (
     remove_provider_config,
     is_ai_configured,
 )
+from app.services.aws_credentials import (
+    get_aws_settings_for_frontend,
+    set_aws_credentials,
+    remove_aws_credentials,
+    check_aws_auth,
+    is_aws_configured,
+    AWS_REGIONS,
+)
 
 router = APIRouter()
 
@@ -76,3 +84,55 @@ async def delete_provider(provider: AIProvider) -> dict:
 async def ai_status() -> dict:
     """Quick check if AI is configured and ready."""
     return {"configured": is_ai_configured()}
+
+
+# === AWS Credentials ===
+
+
+class AWSConfigureRequest(BaseModel):
+    """Request to configure AWS credentials."""
+
+    access_key_id: str
+    secret_access_key: str
+    region: str = "us-east-1"
+    session_token: str = ""
+
+
+@router.get("/settings/aws")
+async def get_aws_settings() -> dict:
+    """Get AWS credential settings (secrets masked)."""
+    return get_aws_settings_for_frontend()
+
+
+@router.post("/settings/aws/configure")
+async def configure_aws(request: AWSConfigureRequest) -> dict:
+    """Configure AWS credentials."""
+    if not request.access_key_id or not request.secret_access_key:
+        raise HTTPException(status_code=400, detail="Access Key ID and Secret Access Key are required.")
+
+    set_aws_credentials(
+        access_key_id=request.access_key_id,
+        secret_access_key=request.secret_access_key,
+        region=request.region,
+        session_token=request.session_token,
+    )
+    return {"status": "configured"}
+
+
+@router.delete("/settings/aws")
+async def delete_aws() -> dict:
+    """Remove AWS credentials."""
+    remove_aws_credentials()
+    return {"status": "removed"}
+
+
+@router.get("/settings/aws/verify")
+async def verify_aws() -> dict:
+    """Verify AWS credentials are valid by calling STS."""
+    return check_aws_auth()
+
+
+@router.get("/settings/aws/status")
+async def aws_status() -> dict:
+    """Quick check if AWS is configured."""
+    return {"configured": is_aws_configured()}

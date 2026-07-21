@@ -213,6 +213,43 @@ class ApiClient {
     return this.request(`/bulk-export/results/${jobId}`);
   }
 
+  // AWS
+  async getAWSSettings(): Promise<any> {
+    return this.request("/settings/aws");
+  }
+
+  async configureAWS(data: { access_key_id: string; secret_access_key: string; region: string; session_token?: string }): Promise<any> {
+    return this.request("/settings/aws/configure", { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async removeAWS(): Promise<any> {
+    return this.request("/settings/aws", { method: "DELETE" });
+  }
+
+  async verifyAWS(): Promise<any> {
+    return this.request("/settings/aws/verify");
+  }
+
+  async getAWSStatus(): Promise<{ configured: boolean }> {
+    return this.request("/settings/aws/status");
+  }
+
+  async getAWSResourceTypes(): Promise<{ types: Array<{ value: string; label: string }>; total: number }> {
+    return this.request("/aws/discovery/types");
+  }
+
+  async startAWSDiscovery(data: { resource_types: string[] }): Promise<{ job_id: string; status: string }> {
+    return this.request("/aws/discovery/start", { method: "POST", body: JSON.stringify(data) });
+  }
+
+  async getAWSDiscoveryStatus(jobId: string): Promise<any> {
+    return this.request(`/aws/discovery/status/${jobId}`);
+  }
+
+  async getAWSDiscoveryResults(jobId: string): Promise<any> {
+    return this.request(`/aws/discovery/results/${jobId}`);
+  }
+
   getWebSocketUrl(jobId: string): string {
     const wsBase = this.baseUrl
       .replace("http://", "ws://")

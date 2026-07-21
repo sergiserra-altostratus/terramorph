@@ -57,6 +57,20 @@ class ResourceType(str, Enum):
     COMPUTE_ROUTE = "compute_route"
     HEALTH_CHECK = "health_check"
 
+    # AWS Resource Types
+    AWS_EC2_INSTANCE = "aws_ec2_instance"
+    AWS_VPC = "aws_vpc"
+    AWS_SUBNET = "aws_subnet"
+    AWS_SECURITY_GROUP = "aws_security_group"
+    AWS_S3_BUCKET = "aws_s3_bucket"
+    AWS_RDS_INSTANCE = "aws_rds_instance"
+    AWS_EKS_CLUSTER = "aws_eks_cluster"
+    AWS_LAMBDA = "aws_lambda"
+    AWS_IAM_ROLE = "aws_iam_role"
+    AWS_ROUTE53_ZONE = "aws_route53_zone"
+    AWS_CLOUDFRONT = "aws_cloudfront"
+    AWS_ELB = "aws_elb"
+
 
 class ScopeType(str, Enum):
     """Discovery scope type."""

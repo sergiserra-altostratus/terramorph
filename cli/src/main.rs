@@ -18,6 +18,12 @@ struct Cli {
 }
 
 #[derive(Clone, ValueEnum)]
+enum CloudProvider {
+    Gcp,
+    Aws,
+}
+
+#[derive(Clone, ValueEnum)]
 enum DiscoveryMode {
     Api,
     BulkExport,
@@ -33,19 +39,23 @@ enum GenerationStyle {
 enum Commands {
     /// Discover GCP resources
     Discover {
-        /// GCP Project ID
+        /// Cloud provider to scan
+        #[arg(long, value_enum, default_value = "gcp")]
+        provider: CloudProvider,
+
+        /// GCP Project ID (GCP only)
         #[arg(long, group = "scope")]
         project: Option<String>,
 
-        /// GCP Folder ID
+        /// GCP Folder ID (GCP only)
         #[arg(long, group = "scope")]
         folder: Option<String>,
 
-        /// GCP Organization ID
+        /// GCP Organization ID (GCP only)
         #[arg(long, group = "scope")]
         organization: Option<String>,
 
-        /// Discovery mode: api (fast, parallel) or bulk-export (precise, uses gcloud)
+        /// Discovery mode: api (fast, parallel) or bulk-export (precise, uses gcloud). GCP only.
         #[arg(long, value_enum, default_value = "api")]
         mode: DiscoveryMode,
 
@@ -117,8 +127,8 @@ async fn main() {
     let api = client::ApiClient::new(&cli.api_url);
 
     let result = match cli.command {
-        Commands::Discover { project, folder, organization, mode, types } => {
-            commands::discover::run(&api, project, folder, organization, &types, mode).await
+        Commands::Discover { provider, project, folder, organization, mode, types } => {
+            commands::discover::run(&api, provider, project, folder, organization, &types, mode).await
         }
         Commands::Generate { job_id, output, style, ai_clean, state_bucket, state_prefix } => {
             commands::generate::run(&api, &job_id, &output, style, ai_clean, state_bucket, state_prefix).await

@@ -59,13 +59,15 @@ interface AIInfo {
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [aiInfo, setAiInfo] = useState<AIInfo | null>(null);
+  const [awsConfigured, setAwsConfigured] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       apiClient.getHealth().catch(() => null),
       apiClient.getAISettings().catch(() => null),
-    ]).then(([h, ai]) => {
+      apiClient.getAWSStatus().catch(() => ({ configured: false })),
+    ]).then(([h, ai, aws]) => {
       setHealth(h);
       if (ai) {
         const configuredProviders = ai.providers.filter((p: any) => p.configured);
@@ -75,6 +77,7 @@ export default function DashboardPage() {
           count: configuredProviders.length,
         });
       }
+      setAwsConfigured(aws?.configured || false);
       setLoading(false);
     });
   }, []);
@@ -140,6 +143,27 @@ export default function DashboardPage() {
             <span className="ml-auto text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
               v{health.version}
             </span>
+          </div>
+          {/* AWS Status */}
+          <div className="flex items-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.04]">
+            <div className="flex items-center gap-2">
+              {awsConfigured ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">AWS Connected</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">AWS Not Configured</span>
+                </>
+              )}
+            </div>
+            {!awsConfigured && (
+              <a href="/settings" className="text-xs text-primary hover:underline">
+                Configure →
+              </a>
+            )}
           </div>
           {/* AI Provider Status */}
           {aiInfo && (

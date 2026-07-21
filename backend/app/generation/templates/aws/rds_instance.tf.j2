@@ -1,0 +1,12 @@
+resource "aws_db_instance" "{{ resource.terraform_resource_name }}" {
+  identifier          = "{{ attrs.identifier }}"
+  engine              = "{{ attrs.engine }}"
+  engine_version      = "{{ attrs.engine_version }}"
+  instance_class      = "{{ attrs.instance_class }}"
+  allocated_storage   = {{ attrs.allocated_storage }}
+  storage_type        = "{{ attrs.storage_type }}"
+  multi_az            = {{ attrs.multi_az | lower }}
+  publicly_accessible = {{ attrs.publicly_accessible | lower }}
+
+  skip_final_snapshot = true
+}

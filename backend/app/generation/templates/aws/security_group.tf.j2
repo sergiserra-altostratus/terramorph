@@ -1,0 +1,7 @@
+resource "aws_security_group" "{{ resource.terraform_resource_name }}" {
+  name        = "{{ resource.name }}"
+  vpc_id      = "{{ attrs.vpc_id }}"
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+}

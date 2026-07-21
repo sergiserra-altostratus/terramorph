@@ -1,0 +1,9 @@
+resource "aws_route53_zone" "{{ resource.terraform_resource_name }}" {
+  name = "{{ attrs.name }}"
+
+{% if attrs.private_zone %}
+  vpc {
+    vpc_id = ""
+  }
+{% endif %}
+}

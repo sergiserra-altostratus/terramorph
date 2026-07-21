@@ -1,0 +1,13 @@
+resource "aws_eks_cluster" "{{ resource.terraform_resource_name }}" {
+  name     = "{{ attrs.name }}"
+  role_arn = "{{ attrs.role_arn }}"
+{% if attrs.version %}
+  version  = "{{ attrs.version }}"
+{% endif %}
+
+  vpc_config {
+{% if attrs.subnet_ids %}
+    subnet_ids = [{% for s in attrs.subnet_ids %}"{{ s }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endif %}
+  }
+}

@@ -125,7 +125,6 @@ cd cli && cargo build
 
 Upcoming features and improvements planned for future releases:
 
-- **AWS Support** — Extend discovery and generation to Amazon Web Services (EC2, S3, RDS, EKS, VPC, IAM, Lambda, and more)
 - **Infrastructure from form** — Create new infrastructure directly from a visual form in the web UI, generating Terraform code without needing pre-existing resources (forward Terraform)
 - **Multi-tenant SaaS mode** — OAuth-based authentication, team workspaces, and hosted deployment option
 

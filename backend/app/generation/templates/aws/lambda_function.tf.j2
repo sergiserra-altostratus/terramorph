@@ -1,0 +1,13 @@
+resource "aws_lambda_function" "{{ resource.terraform_resource_name }}" {
+  function_name = "{{ attrs.function_name }}"
+  role          = "{{ attrs.role }}"
+  handler       = "{{ attrs.handler }}"
+  runtime       = "{{ attrs.runtime }}"
+  memory_size   = {{ attrs.memory_size }}
+  timeout       = {{ attrs.timeout }}
+{% if attrs.description %}
+  description   = "{{ attrs.description }}"
+{% endif %}
+
+  filename = "placeholder.zip"
+}

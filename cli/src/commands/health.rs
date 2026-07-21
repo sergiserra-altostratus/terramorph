@@ -5,10 +5,15 @@ use crate::client::ApiClient;
 pub async fn run(api: &ApiClient) -> Result<(), Box<dyn std::error::Error>> {
     let health = api.health().await?;
     let ai = api.ai_status().await.ok();
+    let aws = api.get_aws_status().await.ok();
     let bulk = api.get_bulk_export_availability().await.ok();
 
     let api_status = if health.status == "ok" { "✓ Connected".green() } else { "✗ Error".red() };
     let gcp_status = if health.gcp_authenticated { "✓ Authenticated".green() } else { "✗ Not Authenticated".red() };
+    let aws_status = match aws {
+        Some(s) if s.configured => "✓ Configured".green(),
+        _ => "✗ Not Configured".yellow(),
+    };
     let ai_status = match ai {
         Some(s) if s.configured => "✓ Configured".green(),
         _ => "✗ Not Configured".yellow(),
@@ -22,6 +27,7 @@ pub async fn run(api: &ApiClient) -> Result<(), Box<dyn std::error::Error>> {
     println!("─────────────────────────");
     println!("  API:          {}", api_status);
     println!("  GCP:          {}", gcp_status);
+    println!("  AWS:          {}", aws_status);
     println!("  AI Cleaning:  {}", ai_status);
     println!("  Bulk Export:  {}", bulk_status);
     println!("  Version:      {}", health.version);

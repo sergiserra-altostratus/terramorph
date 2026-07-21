@@ -77,3 +77,35 @@ export const RESOURCE_CATEGORIES: Record<string, ResourceType[]> = {
 };
 
 export const ALL_RESOURCE_TYPES: ResourceType[] = Object.values(RESOURCE_CATEGORIES).flat();
+
+/** AWS Resource Types grouped by category */
+export type AWSResourceType =
+  | "aws_ec2_instance" | "aws_vpc" | "aws_subnet" | "aws_security_group"
+  | "aws_s3_bucket" | "aws_rds_instance" | "aws_eks_cluster" | "aws_lambda"
+  | "aws_iam_role" | "aws_route53_zone" | "aws_cloudfront" | "aws_elb";
+
+export const AWS_RESOURCE_TYPE_LABELS: Record<AWSResourceType, string> = {
+  aws_ec2_instance: "EC2 Instances",
+  aws_vpc: "VPCs",
+  aws_subnet: "Subnets",
+  aws_security_group: "Security Groups",
+  aws_s3_bucket: "S3 Buckets",
+  aws_rds_instance: "RDS Instances",
+  aws_eks_cluster: "EKS Clusters",
+  aws_lambda: "Lambda Functions",
+  aws_iam_role: "IAM Roles",
+  aws_route53_zone: "Route53 Zones",
+  aws_cloudfront: "CloudFront Distributions",
+  aws_elb: "Load Balancers",
+};
+
+export const AWS_RESOURCE_CATEGORIES: Record<string, AWSResourceType[]> = {
+  "Compute": ["aws_ec2_instance"],
+  "Networking": ["aws_vpc", "aws_subnet", "aws_security_group", "aws_elb", "aws_cloudfront"],
+  "Storage & Databases": ["aws_s3_bucket", "aws_rds_instance"],
+  "Containers & Serverless": ["aws_eks_cluster", "aws_lambda"],
+  "Security & IAM": ["aws_iam_role"],
+  "DNS": ["aws_route53_zone"],
+};
+
+export const ALL_AWS_RESOURCE_TYPES: AWSResourceType[] = Object.values(AWS_RESOURCE_CATEGORIES).flat();

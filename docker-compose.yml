@@ -4,6 +4,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: ${DOCKER_TARGET:-development}
+      args:
+        - INSTALL_GCLOUD=${INSTALL_GCLOUD:-true}
     ports:
       - "${BACKEND_PORT:-8001}:8000"
     environment:

@@ -1,0 +1,7 @@
+resource "aws_subnet" "{{ resource.terraform_resource_name }}" {
+  vpc_id            = "{{ attrs.vpc_id }}"
+  cidr_block        = "{{ attrs.cidr_block }}"
+  availability_zone = "{{ attrs.availability_zone }}"
+
+  map_public_ip_on_launch = {{ attrs.map_public_ip | lower }}
+}
