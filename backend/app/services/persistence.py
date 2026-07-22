@@ -66,10 +66,23 @@ def init_db() -> None:
             source TEXT DEFAULT 'web'
         );
 
+        CREATE TABLE IF NOT EXISTS generation_history (
+            id TEXT PRIMARY KEY,
+            job_id TEXT,
+            provider TEXT DEFAULT 'gcp',
+            total_resources INTEGER DEFAULT 0,
+            files_count INTEGER DEFAULT 0,
+            style TEXT DEFAULT 'flat',
+            ai_cleaned INTEGER DEFAULT 0,
+            files TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
+
         CREATE INDEX IF NOT EXISTS idx_job_history_type ON job_history(type);
         CREATE INDEX IF NOT EXISTS idx_job_history_created ON job_history(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp DESC);
         CREATE INDEX IF NOT EXISTS idx_audit_log_category ON audit_log(category);
+        CREATE INDEX IF NOT EXISTS idx_generation_history_created ON generation_history(created_at DESC);
     """)
     conn.commit()
 
@@ -187,6 +200,60 @@ def get_audit_log(limit: int = 50, category: str | None = None) -> list[dict]:
     except Exception as e:
         logger.error(f"Failed to get audit log: {e}")
         return []
+
+
+# === Generation History ===
+
+def save_generation(
+    generation_id: str,
+    job_id: str,
+    provider: str,
+    total_resources: int,
+    files: list[dict],
+    style: str = "flat",
+    ai_cleaned: bool = False,
+) -> None:
+    """Save a generation result for later retrieval."""
+    try:
+        conn = _get_conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO generation_history (id, job_id, provider, total_resources, files_count, style, ai_cleaned, files, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (generation_id, job_id, provider, total_resources, len(files), style, int(ai_cleaned), json.dumps(files), datetime.now().isoformat()),
+        )
+        conn.commit()
+    except Exception as e:
+        logger.error(f"Failed to save generation: {e}")
+
+
+def get_generation_history(limit: int = 10) -> list[dict]:
+    """Get recent generation history (without file content for listing)."""
+    try:
+        conn = _get_conn()
+        rows = conn.execute(
+            "SELECT id, job_id, provider, total_resources, files_count, style, ai_cleaned, created_at FROM generation_history ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        logger.error(f"Failed to get generation history: {e}")
+        return []
+
+
+def get_generation_by_id(generation_id: str) -> dict | None:
+    """Get a specific generation result including file contents."""
+    try:
+        conn = _get_conn()
+        row = conn.execute(
+            "SELECT * FROM generation_history WHERE id = ?", (generation_id,)
+        ).fetchone()
+        if row:
+            result = dict(row)
+            result["files"] = json.loads(result["files"]) if result["files"] else []
+            return result
+        return None
+    except Exception as e:
+        logger.error(f"Failed to get generation: {e}")
+        return None
 
 
 # Initialize on import

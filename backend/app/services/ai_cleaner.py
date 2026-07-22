@@ -30,7 +30,7 @@ class AIProvider(str, Enum):
 DEFAULT_MODELS = {
     AIProvider.OPENAI: "gpt-4.1",
     AIProvider.ANTHROPIC: "claude-sonnet-4-20250514",
-    AIProvider.GOOGLE_AI: "gemini-2.5-pro",
+    AIProvider.GOOGLE_AI: "gemini-flash-latest",
     AIProvider.AWS_BEDROCK: "anthropic.claude-sonnet-4-20250514-v1:0",
     AIProvider.AZURE_OPENAI: "gpt-4.1",
     AIProvider.OLLAMA: "llama3.1",
@@ -63,12 +63,14 @@ AVAILABLE_MODELS = {
         "claude-3-5-haiku-20241022",
     ],
     AIProvider.GOOGLE_AI: [
-        "gemini-2.5-pro",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-pro",
-        "gemini-1.5-flash",
+        "gemini-flash-latest",
+        "gemini-pro-latest",
+        "gemini-flash-lite-latest",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash-preview-05-20",
+        "gemini-2.5-pro-preview-06-05",
+        "gemini-3-flash-preview",
+        "gemini-3-pro-preview",
     ],
     AIProvider.AWS_BEDROCK: [
         "anthropic.claude-sonnet-4-6-20260215-v1:0",
@@ -253,6 +255,26 @@ async def clean_hcl(hcl_code: str, provider: AIProvider, api_key: str, model: st
         model = DEFAULT_MODELS.get(provider, "")
 
     prompt = CLEAN_PROMPT.format(hcl_code=hcl_code)
+    return await call_ai(prompt, provider, api_key, model, endpoint_url)
+
+
+async def call_ai(prompt: str, provider: AIProvider, api_key: str, model: str | None = None, endpoint_url: str | None = None) -> str:
+    """Send a raw prompt to the AI provider and return the response.
+
+    Generic function — does not add any wrapper prompt.
+
+    Args:
+        prompt: The full prompt to send.
+        provider: AI provider to use.
+        api_key: API key for the provider.
+        model: Optional model override.
+        endpoint_url: Optional endpoint URL override.
+
+    Returns:
+        AI response text.
+    """
+    if not model:
+        model = DEFAULT_MODELS.get(provider, "")
 
     try:
         if provider == AIProvider.OPENAI:

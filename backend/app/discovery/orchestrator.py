@@ -8,6 +8,7 @@ from typing import Any
 from google.auth.credentials import Credentials
 
 from app.core.credentials import get_credentials
+from app.core.exceptions import DiscoveryError
 from app.core.logging import get_logger
 from app.discovery.artifact_registry import ArtifactRegistryDiscoverer
 from app.discovery.apigateway import APIGatewayDiscoverer
@@ -181,22 +182,34 @@ async def _resolve_projects(scope_type: ScopeType, scope_id: str, credentials: C
 
     from google.cloud import resourcemanager_v3
 
-    client = resourcemanager_v3.ProjectsClient(credentials=credentials)
+    try:
+        client = resourcemanager_v3.ProjectsClient(credentials=credentials)
 
-    if scope_type == ScopeType.ORGANIZATION:
-        query = f"parent:organizations/{scope_id}"
-    elif scope_type == ScopeType.FOLDER:
-        query = f"parent:folders/{scope_id}"
-    else:
-        return [scope_id]
+        if scope_type == ScopeType.ORGANIZATION:
+            query = f"parent:organizations/{scope_id}"
+        elif scope_type == ScopeType.FOLDER:
+            query = f"parent:folders/{scope_id}"
+        else:
+            return [scope_id]
 
-    request = resourcemanager_v3.SearchProjectsRequest(query=query)
-    projects = []
-    for project in client.search_projects(request=request):
-        if project.state.name == "ACTIVE":
-            projects.append(project.project_id)
+        request = resourcemanager_v3.SearchProjectsRequest(query=query)
+        projects = []
+        for project in client.search_projects(request=request):
+            if project.state.name == "ACTIVE":
+                projects.append(project.project_id)
 
-    return projects
+        if not projects:
+            logger.warning(f"No active projects found in {scope_type.value} '{scope_id}'. Check permissions: roles/browser or roles/resourcemanager.folderViewer required.")
+
+        return projects
+
+    except Exception as e:
+        logger.error(f"Failed to resolve projects for {scope_type.value} '{scope_id}': {e}")
+        raise DiscoveryError(
+            f"Cannot list projects in {scope_type.value} '{scope_id}'. "
+            f"Ensure you have 'roles/browser' or 'roles/resourcemanager.folderViewer' permission. "
+            f"Error: {str(e)[:200]}"
+        )
 
 
 async def start_discovery(request: DiscoveryRequest) -> str:
@@ -231,8 +244,18 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
             request.scope.type, request.scope.id, credentials
         )
 
+        if not projects:
+            job["status"] = JobStatus.FAILED
+            job["error"] = f"No projects found in {request.scope.type.value} '{request.scope.id}'. Check permissions."
+            job["progress"].message = job["error"]
+            await _notify(job_id, job["progress"])
+            from app.services.persistence import update_job
+            update_job(job_id, "failed", 0, job["error"])
+            return
+
         total_types = len(request.resource_types)
         all_resources: list[DiscoveredResource] = []
+        errors: list[str] = []
 
         for idx, resource_type in enumerate(request.resource_types):
             discoverer_class = DISCOVERER_MAP.get(resource_type)
@@ -243,22 +266,38 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
                 total=total_types,
                 completed=idx,
                 current_type=resource_type.value,
-                message=f"Discovering {resource_type.value}...",
+                message=f"Discovering {resource_type.value} ({len(projects)} project(s))...",
             )
             job["progress"] = progress
             await _notify(job_id, progress)
 
             discoverer = discoverer_class(credentials)
             for project_id in projects:
-                resources = await discoverer.discover(project_id)
-                all_resources.extend(resources)
+                try:
+                    resources = await asyncio.wait_for(
+                        discoverer.discover(project_id),
+                        timeout=60.0,  # 60s timeout per resource type per project
+                    )
+                    all_resources.extend(resources)
+                except asyncio.TimeoutError:
+                    err_msg = f"Timeout discovering {resource_type.value} in {project_id} (>60s)"
+                    logger.warning(err_msg)
+                    errors.append(err_msg)
+                except Exception as e:
+                    err_msg = f"Error discovering {resource_type.value} in {project_id}: {str(e)[:100]}"
+                    logger.warning(err_msg)
+                    errors.append(err_msg)
 
         job["resources"] = all_resources
         job["status"] = JobStatus.COMPLETED
+        completion_msg = f"Discovery complete. Found {len(all_resources)} resources."
+        if errors:
+            completion_msg += f" ({len(errors)} warning(s): some resource types failed)"
+            job["error"] = "; ".join(errors[:5])  # Keep first 5 errors
         job["progress"] = JobProgress(
             total=total_types,
             completed=total_types,
-            message=f"Discovery complete. Found {len(all_resources)} resources.",
+            message=completion_msg,
         )
         await _notify(job_id, job["progress"])
 
@@ -270,8 +309,10 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
 
     except Exception as e:
         job["status"] = JobStatus.FAILED
-        job["error"] = str(e)
-        job["progress"].message = f"Discovery failed: {str(e)}"
+        error_msg = str(e)[:500]
+        job["error"] = error_msg
+        job["progress"].message = f"Discovery failed: {error_msg}"
+        await _notify(job_id, job["progress"])
 
         from app.services.persistence import update_job
         update_job(job_id, "failed", 0, str(e))

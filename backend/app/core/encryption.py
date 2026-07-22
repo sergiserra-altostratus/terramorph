@@ -26,15 +26,14 @@ def _derive_key(passphrase: str | None = None) -> bytes:
         # Derive from user passphrase
         key_material = passphrase.encode()
     else:
-        # Use env var or machine-derived default
+        # Use env var or stable fallback
         env_key = os.environ.get("TERRAMORPH_ENCRYPTION_KEY", "")
         if env_key:
             key_material = env_key.encode()
         else:
-            # Fallback: machine-derived (not ideal but better than plaintext)
-            hostname = os.environ.get("HOSTNAME", "terramorph")
+            # Stable fallback: use the data directory path (doesn't change between restarts)
             data_dir = os.environ.get("TERRAMORPH_DATA_DIR", "/app/data")
-            key_material = f"{hostname}:{data_dir}:terramorph-secrets".encode()
+            key_material = f"terramorph-secrets:{data_dir}:stable-key-v1".encode()
 
     # Derive 32 bytes using SHA-256 and encode as Fernet key
     derived = hashlib.sha256(key_material).digest()

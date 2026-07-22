@@ -71,6 +71,25 @@ async def job_history(limit: int = 20, type: str | None = None) -> dict:
     return {"jobs": jobs, "total": len(jobs)}
 
 
+@router.get("/generations")
+async def generation_history(limit: int = 10) -> dict:
+    """Get recent generation history."""
+    from app.services.persistence import get_generation_history
+    generations = get_generation_history(limit=limit)
+    return {"generations": generations, "total": len(generations)}
+
+
+@router.get("/generations/{generation_id}")
+async def get_generation(generation_id: str) -> dict:
+    """Get a specific generation result with full file contents."""
+    from app.services.persistence import get_generation_by_id
+    result = get_generation_by_id(generation_id)
+    if not result:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Generation not found")
+    return result
+
+
 @router.get("/audit")
 async def audit_log(limit: int = 50, category: str | None = None) -> dict:
     """Get audit log entries."""

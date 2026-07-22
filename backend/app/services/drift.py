@@ -21,7 +21,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.logging import get_logger
-from app.services.ai_cleaner import AIProvider, clean_hcl
 from app.services.ai_settings import get_active_config, is_ai_configured
 
 logger = get_logger("drift")
@@ -253,8 +252,9 @@ provider "google" {{
             )
 
             try:
-                fixed_content = await clean_hcl(
-                    hcl_code=prompt,  # Using clean_hcl as generic AI call
+                from app.services.ai_cleaner import call_ai
+                fixed_content = await call_ai(
+                    prompt=prompt,
                     provider=ai_config.provider,
                     api_key=ai_config.api_key,
                     model=ai_config.model or None,

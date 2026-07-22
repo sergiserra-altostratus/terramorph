@@ -136,6 +136,20 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     })
     record_job(request.job_id, "generation", "gcp", "completed", {"resources": len(resources), "files": len(formatted_files)})
 
+    # Save to generation history for later retrieval
+    import uuid as _uuid
+    from app.services.persistence import save_generation
+    gen_id = str(_uuid.uuid4())
+    save_generation(
+        generation_id=gen_id,
+        job_id=request.job_id,
+        provider="gcp",
+        total_resources=len(resources),
+        files=[{"filename": f.filename, "content": f.content} for f in formatted_files],
+        style=request.options.generation_style.value,
+        ai_cleaned=ai_cleaned,
+    )
+
     return GenerationResult(
         files=formatted_files,
         total_resources=len(resources),

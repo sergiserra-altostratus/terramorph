@@ -10,8 +10,8 @@ from fastapi import HTTPException
 
 # Strict patterns for GCP identifiers
 GCP_PROJECT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9\-]{4,28}[a-z0-9]$")
-GCP_FOLDER_ID_PATTERN = re.compile(r"^\d{1,20}$")
-GCP_ORG_ID_PATTERN = re.compile(r"^\d{1,20}$")
+GCP_FOLDER_ID_PATTERN = re.compile(r"^\d{1,30}$")
+GCP_ORG_ID_PATTERN = re.compile(r"^\d{1,30}$")
 
 # Broad pattern for resource names (GCP and AWS)
 RESOURCE_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_\-.:/@]{0,255}$")

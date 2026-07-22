@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Code, Download, Copy, Check, FileText, Sparkles, Database, FileCode, BrainCircuit } from "lucide-react";
+import { Code, Download, Copy, Check, FileText, Sparkles, Database, FileCode, BrainCircuit, RefreshCw } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import type { GenerationResult } from "@/lib/api";
 
@@ -107,9 +107,52 @@ export default function GeneratePage() {
   );
 }
 
+function GenerationHistoryPanel() {
+  const [history, setHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiClient.request<any>("/generations?limit=5")
+      .then((data) => setHistory(data.generations || []))
+      .catch(() => {});
+  }, []);
+
+  if (history.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 mt-4">
+      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
+        Previous Generations
+      </h4>
+      <div className="space-y-2">
+        {history.map((gen) => (
+          <a
+            key={gen.id}
+            href={`/generate?generation_id=${gen.id}`}
+            className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors border border-transparent hover:border-gray-200 dark:hover:border-white/[0.06]"
+          >
+            <div className="flex items-center gap-3">
+              <FileText className="h-4 w-4 text-gray-400" />
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {gen.total_resources} resources · {gen.files_count} files
+                </p>
+                <p className="text-[10px] text-gray-400">
+                  {gen.style} {gen.ai_cleaned ? "· AI cleaned" : ""} · {gen.created_at?.replace("T", " ").slice(0, 16)}
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] text-primary">View →</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GeneratePageContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("job_id");
+  const generationId = searchParams.get("generation_id");
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -125,6 +168,29 @@ function GeneratePageContent() {
   useEffect(() => {
     apiClient.getAIStatus().then((s) => setAiConfigured(s.configured)).catch(() => setAiConfigured(false));
   }, []);
+
+  // Load previous generation from history if generation_id is in URL
+  useEffect(() => {
+    if (generationId) {
+      setLoading(true);
+      apiClient.request<any>(`/generations/${generationId}`)
+        .then((data) => {
+          if (data && data.files) {
+            const files = data.files.map((f: any) => ({ filename: f.filename, content: f.content }));
+            setResult({
+              files,
+              total_resources: data.total_resources || 0,
+              import_commands: data.total_resources || 0,
+              ai_cleaned: Boolean(data.ai_cleaned),
+              ai_diff: null,
+            });
+            if (files.length > 0) setActiveFile(files[0].filename);
+          }
+        })
+        .catch((e) => setError(e instanceof Error ? e.message : "Failed to load generation"))
+        .finally(() => setLoading(false));
+    }
+  }, [generationId]);
 
   const generate = async () => {
     if (!jobId) return;
@@ -154,7 +220,7 @@ function GeneratePageContent() {
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!jobId) {
+  if (!jobId && !generationId) {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center gap-3">
@@ -180,6 +246,9 @@ function GeneratePageContent() {
             first to scan your infrastructure.
           </p>
         </div>
+
+        {/* Previous Generations */}
+        <GenerationHistoryPanel />
       </div>
     );
   }
@@ -331,13 +400,35 @@ function GeneratePageContent() {
               Generated <span className="font-semibold text-gray-900 dark:text-white">{result.total_resources}</span> resources across{" "}
               <span className="font-semibold text-gray-900 dark:text-white">{result.files.length}</span> files
             </p>
-            <a
-              href={apiClient.getDownloadUrl(jobId)}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-150"
-            >
-              <Download className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              {/* Drift Detection Button */}
+              <div className="relative group">
+                <a
+                  href={aiConfigured ? `/drift?from_generate=true&job_id=${jobId}` : "#"}
+                  onClick={(e) => { if (!aiConfigured) e.preventDefault(); }}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-150 ${
+                    aiConfigured
+                      ? "border border-indigo-400/60 dark:border-indigo-400/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                      : "bg-gray-100 dark:bg-white/[0.04] text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Run Drift Detection
+                </a>
+                {!aiConfigured && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block whitespace-nowrap rounded-lg bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs px-3 py-1.5 shadow-lg z-10">
+                    AI provider required. Configure in Settings.
+                  </div>
+                )}
+              </div>
+              <a
+                href={apiClient.getDownloadUrl(jobId)}
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-150"
+              >
+                <Download className="h-4 w-4" />
               Download ZIP
             </a>
+            </div>
           </div>
 
           {/* AI Diff Preview */}

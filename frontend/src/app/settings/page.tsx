@@ -317,7 +317,7 @@ export default function SettingsPage() {
       )}
 
       {/* Cloud Providers */}
-      <div className="rounded-xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden border-l-2 border-l-orange-400">
         <div
           role="button" tabIndex={0} aria-expanded={awsSectionOpen}
           className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
@@ -346,7 +346,7 @@ export default function SettingsPage() {
       </div>
 
       {/* AI Provider List */}
-      <div className="rounded-xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden border-l-2 border-l-violet-400">
         <div
           role="button" tabIndex={0} aria-expanded={aiSectionOpen}
           className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"

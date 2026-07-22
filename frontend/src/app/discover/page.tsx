@@ -174,28 +174,21 @@ export default function DiscoverPage() {
           resource_types: selectedTypes,
         });
         setJobId(job.job_id);
+        setStatus({ job_id: job.job_id, status: "running", progress: { total: selectedTypes.length, completed: 0, current_type: null, message: "Connecting..." }, resources_found: 0, error: null });
 
-        // Connect to WebSocket for streaming updates
+        // Try WebSocket, fallback to polling after 5s timeout
+        let wsConnected = false;
         const wsUrl = apiClient.getWebSocketUrl(job.job_id);
-        const ws = new WebSocket(wsUrl);
+        let ws: WebSocket | null = null;
 
-        ws.onmessage = async (event) => {
-          const msg = JSON.parse(event.data);
-          if (msg.type === "progress") {
-            setStatus({ job_id: job.job_id, status: "running", progress: msg.data, resources_found: 0 });
-          } else if (msg.type === "complete") {
-            ws.close();
-            const r = await apiClient.getDiscoveryResults(job.job_id);
-            setResult(r);
-            setIsRunning(false);
-          } else if (msg.type === "heartbeat") {
-            // Keep alive, no action
-          }
-        };
+        try {
+          ws = new WebSocket(wsUrl);
+        } catch {
+          ws = null;
+        }
 
-        ws.onerror = () => {
-          // Fallback to polling if WS fails
-          ws.close();
+        // Fallback to polling function
+        const startPolling = () => {
           const pollInterval = setInterval(async () => {
             try {
               const s = await apiClient.getDiscoveryStatus(job.job_id);
@@ -217,6 +210,45 @@ export default function DiscoverPage() {
             }
           }, 2000);
         };
+
+        if (ws) {
+          // Timeout: if WS doesn't send data in 10s, fallback to polling
+          const wsTimeout = setTimeout(() => {
+            if (!wsConnected && ws) {
+              ws.close();
+              startPolling();
+            }
+          }, 10000);
+
+          ws.onmessage = async (event) => {
+            wsConnected = true;
+            clearTimeout(wsTimeout);
+            const msg = JSON.parse(event.data);
+            if (msg.type === "progress") {
+              setStatus({ job_id: job.job_id, status: "running", progress: msg.data, resources_found: 0, error: null });
+            } else if (msg.type === "complete") {
+              ws?.close();
+              const r = await apiClient.getDiscoveryResults(job.job_id);
+              setResult(r);
+              setIsRunning(false);
+            }
+          };
+
+          ws.onerror = () => {
+            clearTimeout(wsTimeout);
+            ws?.close();
+            startPolling();
+          };
+
+          ws.onclose = () => {
+            if (!wsConnected) {
+              clearTimeout(wsTimeout);
+              startPolling();
+            }
+          };
+        } else {
+          startPolling();
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start discovery");
@@ -314,8 +346,8 @@ export default function DiscoverPage() {
             disabled={isRunning}
             className={`flex-1 flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-150 ${
               cloudProvider === "gcp"
-                ? "border-blue-300 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10"
-                : "border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1]"
+                ? "ring-2 ring-blue-500/40 border-blue-400/60 dark:border-blue-400/30 bg-blue-50/50 dark:bg-blue-500/[0.06]"
+                : "border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/[0.1]"
             }`}
           >
             <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
@@ -331,8 +363,8 @@ export default function DiscoverPage() {
             disabled={isRunning}
             className={`flex-1 flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-150 ${
               cloudProvider === "aws"
-                ? "border-orange-300 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10"
-                : "border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/[0.1]"
+                ? "ring-2 ring-orange-500/40 border-orange-400/60 dark:border-orange-400/30 bg-orange-50/50 dark:bg-orange-500/[0.06]"
+                : "border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/[0.1]"
             }`}
           >
             <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">

@@ -172,8 +172,24 @@ class HCLRenderer:
         template = self.env.get_template(template_name)
         return template.render(resource=resource, attrs=resource.attributes)
 
+    def _deduplicate_names(self, resources: list[DiscoveredResource]) -> list[DiscoveredResource]:
+        """Ensure all terraform_resource_name values are unique per type.
+
+        If duplicates are found, appends a counter suffix.
+        """
+        seen: dict[str, int] = {}
+        for resource in resources:
+            key = f"{resource.terraform_resource_type}.{resource.terraform_resource_name}"
+            if key in seen:
+                seen[key] += 1
+                resource.terraform_resource_name = f"{resource.terraform_resource_name}_{seen[key]}"
+            else:
+                seen[key] = 0
+        return resources
+
     def render_all(self, resources: list[DiscoveredResource]) -> str:
         """Render all resources into a single file."""
+        resources = self._deduplicate_names(resources)
         blocks = []
         for resource in resources:
             blocks.append(self.render_resource(resource))
@@ -185,6 +201,7 @@ class HCLRenderer:
         Returns:
             Dictionary mapping filename to HCL content.
         """
+        resources = self._deduplicate_names(resources)
         grouped: dict[str, list[str]] = {}
 
         for resource in resources:
@@ -210,6 +227,7 @@ class HCLRenderer:
 
     def render_all_as_modules(self, resources: list[DiscoveredResource]) -> str:
         """Render all resources as modules into a single file."""
+        resources = self._deduplicate_names(resources)
         blocks = []
         for resource in resources:
             blocks.append(self.render_resource_as_module(resource))
@@ -221,6 +239,7 @@ class HCLRenderer:
         Returns:
             Dictionary mapping filename to HCL content.
         """
+        resources = self._deduplicate_names(resources)
         grouped: dict[str, list[str]] = {}
 
         for resource in resources:

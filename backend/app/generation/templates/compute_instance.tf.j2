@@ -41,7 +41,13 @@ resource "google_compute_instance" "{{ resource.terraform_resource_name }}" {
 {% if attrs.metadata %}
   metadata = {
 {% for key, value in attrs.metadata.items() %}
+{% if '\n' in value %}
+    {{ key }} = <<-EOT
+{{ value }}
+EOT
+{% else %}
     {{ key }} = "{{ value }}"
+{% endif %}
 {% endfor %}
   }
 {% endif %}
