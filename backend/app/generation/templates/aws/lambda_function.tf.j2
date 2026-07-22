@@ -10,4 +10,12 @@ resource "aws_lambda_function" "{{ resource.terraform_resource_name }}" {
 {% endif %}
 
   filename = "placeholder.zip"
+{% if attrs.tags %}
+
+  tags = {
+{% for key, value in attrs.tags.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
 }

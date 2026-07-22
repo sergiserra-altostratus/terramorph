@@ -1,3 +1,11 @@
 resource "aws_sns_topic" "{{ resource.terraform_resource_name }}" {
   name = "{{ attrs.name }}"
+{% if attrs.tags %}
+
+  tags = {
+{% for key, value in attrs.tags.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
 }

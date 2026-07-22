@@ -4,4 +4,12 @@ resource "aws_subnet" "{{ resource.terraform_resource_name }}" {
   availability_zone = "{{ attrs.availability_zone }}"
 
   map_public_ip_on_launch = {{ attrs.map_public_ip | lower }}
+{% if attrs.tags %}
+
+  tags = {
+{% for key, value in attrs.tags.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
 }
