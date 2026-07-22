@@ -10,6 +10,8 @@ import {
   Boxes,
   Shield,
   Globe,
+  MessageSquare,
+  Activity,
   CheckSquare,
   Square,
   MinusSquare,
@@ -27,6 +29,8 @@ const CATEGORY_META: Record<string, { icon: React.ElementType; accent: string; a
   "Storage & Databases": { icon: Database, accent: "from-amber-500 to-amber-600", accentBg: "bg-amber-500/10", accentText: "text-amber-400", accentBorder: "border-amber-400/30" },
   "Containers & Serverless": { icon: Boxes, accent: "from-violet-500 to-violet-600", accentBg: "bg-violet-500/10", accentText: "text-violet-400", accentBorder: "border-violet-400/30" },
   "Security & IAM": { icon: Shield, accent: "from-red-500 to-red-600", accentBg: "bg-red-500/10", accentText: "text-red-400", accentBorder: "border-red-400/30" },
+  "Messaging": { icon: MessageSquare, accent: "from-pink-500 to-pink-600", accentBg: "bg-pink-500/10", accentText: "text-pink-400", accentBorder: "border-pink-400/30" },
+  "Observability": { icon: Activity, accent: "from-cyan-500 to-cyan-600", accentBg: "bg-cyan-500/10", accentText: "text-cyan-400", accentBorder: "border-cyan-400/30" },
   "DNS": { icon: Globe, accent: "from-emerald-500 to-emerald-600", accentBg: "bg-emerald-500/10", accentText: "text-emerald-400", accentBorder: "border-emerald-400/30" },
 };
 

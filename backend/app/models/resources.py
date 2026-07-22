@@ -70,6 +70,14 @@ class ResourceType(str, Enum):
     AWS_ROUTE53_ZONE = "aws_route53_zone"
     AWS_CLOUDFRONT = "aws_cloudfront"
     AWS_ELB = "aws_elb"
+    AWS_DYNAMODB = "aws_dynamodb"
+    AWS_SNS_TOPIC = "aws_sns_topic"
+    AWS_SQS_QUEUE = "aws_sqs_queue"
+    AWS_CLOUDWATCH_ALARM = "aws_cloudwatch_alarm"
+    AWS_API_GATEWAY = "aws_api_gateway"
+    AWS_SECRETS_MANAGER = "aws_secrets_manager"
+    AWS_ECS_CLUSTER = "aws_ecs_cluster"
+    AWS_ELASTIC_IP = "aws_elastic_ip"
 
 
 class ScopeType(str, Enum):

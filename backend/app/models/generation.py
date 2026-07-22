@@ -67,3 +67,5 @@ class GenerationResult(BaseModel):
     files: list[GeneratedFile] = Field(default_factory=list)
     total_resources: int = 0
     import_commands: int = 0
+    ai_cleaned: bool = False
+    ai_diff: list[dict] | None = Field(default=None, description="Before/after diffs when AI cleaning is applied")

@@ -82,7 +82,9 @@ export const ALL_RESOURCE_TYPES: ResourceType[] = Object.values(RESOURCE_CATEGOR
 export type AWSResourceType =
   | "aws_ec2_instance" | "aws_vpc" | "aws_subnet" | "aws_security_group"
   | "aws_s3_bucket" | "aws_rds_instance" | "aws_eks_cluster" | "aws_lambda"
-  | "aws_iam_role" | "aws_route53_zone" | "aws_cloudfront" | "aws_elb";
+  | "aws_iam_role" | "aws_route53_zone" | "aws_cloudfront" | "aws_elb"
+  | "aws_dynamodb" | "aws_sns_topic" | "aws_sqs_queue" | "aws_cloudwatch_alarm"
+  | "aws_api_gateway" | "aws_secrets_manager" | "aws_ecs_cluster" | "aws_elastic_ip";
 
 export const AWS_RESOURCE_TYPE_LABELS: Record<AWSResourceType, string> = {
   aws_ec2_instance: "EC2 Instances",
@@ -95,16 +97,26 @@ export const AWS_RESOURCE_TYPE_LABELS: Record<AWSResourceType, string> = {
   aws_lambda: "Lambda Functions",
   aws_iam_role: "IAM Roles",
   aws_route53_zone: "Route53 Zones",
-  aws_cloudfront: "CloudFront Distributions",
+  aws_cloudfront: "CloudFront",
   aws_elb: "Load Balancers",
+  aws_dynamodb: "DynamoDB Tables",
+  aws_sns_topic: "SNS Topics",
+  aws_sqs_queue: "SQS Queues",
+  aws_cloudwatch_alarm: "CloudWatch Alarms",
+  aws_api_gateway: "API Gateway",
+  aws_secrets_manager: "Secrets Manager",
+  aws_ecs_cluster: "ECS Clusters",
+  aws_elastic_ip: "Elastic IPs",
 };
 
 export const AWS_RESOURCE_CATEGORIES: Record<string, AWSResourceType[]> = {
-  "Compute": ["aws_ec2_instance"],
-  "Networking": ["aws_vpc", "aws_subnet", "aws_security_group", "aws_elb", "aws_cloudfront"],
-  "Storage & Databases": ["aws_s3_bucket", "aws_rds_instance"],
+  "Compute": ["aws_ec2_instance", "aws_ecs_cluster"],
+  "Networking": ["aws_vpc", "aws_subnet", "aws_security_group", "aws_elb", "aws_cloudfront", "aws_elastic_ip", "aws_api_gateway"],
+  "Storage & Databases": ["aws_s3_bucket", "aws_rds_instance", "aws_dynamodb"],
   "Containers & Serverless": ["aws_eks_cluster", "aws_lambda"],
-  "Security & IAM": ["aws_iam_role"],
+  "Security & IAM": ["aws_iam_role", "aws_secrets_manager"],
+  "Messaging": ["aws_sns_topic", "aws_sqs_queue"],
+  "Observability": ["aws_cloudwatch_alarm"],
   "DNS": ["aws_route53_zone"],
 };
 

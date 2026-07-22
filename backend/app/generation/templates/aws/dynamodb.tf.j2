@@ -1,0 +1,24 @@
+resource "aws_dynamodb_table" "{{ resource.terraform_resource_name }}" {
+  name         = "{{ attrs.name }}"
+  billing_mode = "{{ attrs.billing_mode }}"
+  hash_key     = "{{ attrs.hash_key }}"
+{% if attrs.range_key %}
+  range_key    = "{{ attrs.range_key }}"
+{% endif %}
+
+{% if attrs.billing_mode == "PROVISIONED" %}
+  read_capacity  = {{ attrs.read_capacity }}
+  write_capacity = {{ attrs.write_capacity }}
+{% endif %}
+
+  attribute {
+    name = "{{ attrs.hash_key }}"
+    type = "S"
+  }
+{% if attrs.range_key %}
+  attribute {
+    name = "{{ attrs.range_key }}"
+    type = "S"
+  }
+{% endif %}
+}

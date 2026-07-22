@@ -1,0 +1,10 @@
+resource "aws_cloudwatch_metric_alarm" "{{ resource.terraform_resource_name }}" {
+  alarm_name          = "{{ attrs.alarm_name }}"
+  metric_name         = "{{ attrs.metric_name }}"
+  namespace           = "{{ attrs.namespace }}"
+  comparison_operator = "{{ attrs.comparison_operator }}"
+  threshold           = {{ attrs.threshold }}
+  period              = {{ attrs.period }}
+  evaluation_periods  = {{ attrs.evaluation_periods }}
+  statistic           = "{{ attrs.statistic }}"
+}

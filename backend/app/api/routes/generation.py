@@ -83,6 +83,8 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
         files.append(GeneratedFile(filename="import.tf", content=import_content))
 
     # Apply AI cleaning if enabled
+    ai_cleaned = False
+    ai_diff_list = []
     if request.options.ai_clean:
         from app.services.ai_settings import get_active_config
         from app.services.ai_cleaner import clean_hcl
@@ -93,6 +95,7 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
             for f in files:
                 if f.filename.endswith(".tf") and f.filename not in ("provider.tf", "backend.tf", "import.tf"):
                     try:
+                        original_content = f.content
                         cleaned_content = await clean_hcl(
                             hcl_code=f.content,
                             provider=ai_config.provider,
@@ -101,12 +104,20 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
                             endpoint_url=ai_config.endpoint_url or None,
                         )
                         cleaned_files.append(GeneratedFile(filename=f.filename, content=cleaned_content))
+                        # Track diff if content changed
+                        if cleaned_content != original_content:
+                            ai_diff_list.append({
+                                "filename": f.filename,
+                                "before": original_content,
+                                "after": cleaned_content,
+                            })
                     except Exception as e:
                         logger.warning(f"AI cleaning failed for {f.filename}: {e}")
                         cleaned_files.append(f)
                 else:
                     cleaned_files.append(f)
             files = cleaned_files
+            ai_cleaned = True
 
     # Apply terraform fmt to all .tf files
     formatted_files = []
@@ -129,6 +140,8 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
         files=formatted_files,
         total_resources=len(resources),
         import_commands=len(resources),
+        ai_cleaned=ai_cleaned,
+        ai_diff=ai_diff_list if ai_diff_list else None,
     )
 
 

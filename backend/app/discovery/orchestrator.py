@@ -262,12 +262,19 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
         )
         await _notify(job_id, job["progress"])
 
+        # Persist job completion to SQLite
+        from app.services.persistence import update_job
+        update_job(job_id, "completed", len(all_resources), f"{len(all_resources)} resources across {total_types} types")
+
         logger.info(f"Job {job_id} completed: {len(all_resources)} resources found")
 
     except Exception as e:
         job["status"] = JobStatus.FAILED
         job["error"] = str(e)
         job["progress"].message = f"Discovery failed: {str(e)}"
+
+        from app.services.persistence import update_job
+        update_job(job_id, "failed", 0, str(e))
         await _notify(job_id, job["progress"])
         logger.error(f"Job {job_id} failed: {e}")
 

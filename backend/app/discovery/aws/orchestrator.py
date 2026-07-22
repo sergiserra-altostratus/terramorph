@@ -6,15 +6,23 @@ import uuid
 from typing import Any
 
 from app.core.logging import get_logger
+from app.discovery.aws.apigateway import APIGatewayDiscoverer
 from app.discovery.aws.cloudfront import CloudFrontDiscoverer
+from app.discovery.aws.cloudwatch import CloudWatchDiscoverer
+from app.discovery.aws.dynamodb import DynamoDBDiscoverer
 from app.discovery.aws.ec2 import EC2Discoverer
+from app.discovery.aws.ecs import ECSDiscoverer
 from app.discovery.aws.eks import EKSDiscoverer
+from app.discovery.aws.elastic_ip import ElasticIPDiscoverer
 from app.discovery.aws.elb import ELBDiscoverer
 from app.discovery.aws.iam import IAMDiscoverer
 from app.discovery.aws.lambda_fn import LambdaDiscoverer
 from app.discovery.aws.rds import RDSDiscoverer
 from app.discovery.aws.route53 import Route53Discoverer
 from app.discovery.aws.s3 import S3Discoverer
+from app.discovery.aws.secrets_manager import SecretsManagerDiscoverer
+from app.discovery.aws.sns import SNSDiscoverer
+from app.discovery.aws.sqs import SQSDiscoverer
 from app.discovery.aws.vpc import VPCDiscoverer
 from app.models.discovery import JobProgress, JobStatus
 from app.models.resources import DiscoveredResource, ResourceType
@@ -36,6 +44,14 @@ AWS_DISCOVERER_MAP = {
     ResourceType.AWS_ROUTE53_ZONE: Route53Discoverer,
     ResourceType.AWS_CLOUDFRONT: CloudFrontDiscoverer,
     ResourceType.AWS_ELB: ELBDiscoverer,
+    ResourceType.AWS_DYNAMODB: DynamoDBDiscoverer,
+    ResourceType.AWS_SNS_TOPIC: SNSDiscoverer,
+    ResourceType.AWS_SQS_QUEUE: SQSDiscoverer,
+    ResourceType.AWS_CLOUDWATCH_ALARM: CloudWatchDiscoverer,
+    ResourceType.AWS_API_GATEWAY: APIGatewayDiscoverer,
+    ResourceType.AWS_SECRETS_MANAGER: SecretsManagerDiscoverer,
+    ResourceType.AWS_ECS_CLUSTER: ECSDiscoverer,
+    ResourceType.AWS_ELASTIC_IP: ElasticIPDiscoverer,
 }
 
 AWS_RESOURCE_TYPE_TEMPLATE_MAP = {

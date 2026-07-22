@@ -1,0 +1,10 @@
+resource "aws_api_gateway_rest_api" "{{ resource.terraform_resource_name }}" {
+  name = "{{ attrs.name }}"
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+
+  endpoint_configuration {
+    types = ["{{ attrs.endpoint_type }}"]
+  }
+}

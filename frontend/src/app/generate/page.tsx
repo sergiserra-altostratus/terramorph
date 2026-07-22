@@ -340,6 +340,37 @@ function GeneratePageContent() {
             </a>
           </div>
 
+          {/* AI Diff Preview */}
+          {result.ai_cleaned && result.ai_diff && result.ai_diff.length > 0 && (
+            <div className="rounded-xl border border-violet-200 dark:border-violet-500/20 bg-violet-50/50 dark:bg-violet-500/5 p-4 animate-slide-up">
+              <div className="flex items-center gap-2 mb-3">
+                <BrainCircuit className="h-4 w-4 text-violet-500" />
+                <h4 className="text-xs font-semibold text-violet-800 dark:text-violet-300">
+                  AI Cleaning Applied — {result.ai_diff.length} file(s) modified
+                </h4>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {result.ai_diff.map((diff: any) => (
+                  <details key={diff.filename} className="rounded-lg border border-violet-200/50 dark:border-violet-500/10 overflow-hidden">
+                    <summary className="px-3 py-2 text-xs font-mono cursor-pointer hover:bg-violet-100/50 dark:hover:bg-violet-500/5 text-violet-700 dark:text-violet-300">
+                      {diff.filename}
+                    </summary>
+                    <div className="grid grid-cols-2 gap-0 border-t border-violet-200/50 dark:border-violet-500/10">
+                      <div className="p-2 border-r border-violet-200/50 dark:border-violet-500/10">
+                        <p className="text-[9px] text-red-500 font-semibold mb-1 uppercase">Before</p>
+                        <pre className="text-[10px] font-mono text-gray-600 dark:text-gray-400 overflow-x-auto max-h-32 overflow-y-auto">{diff.before?.slice(0, 500)}</pre>
+                      </div>
+                      <div className="p-2">
+                        <p className="text-[9px] text-green-500 font-semibold mb-1 uppercase">After</p>
+                        <pre className="text-[10px] font-mono text-gray-600 dark:text-gray-400 overflow-x-auto max-h-32 overflow-y-auto">{diff.after?.slice(0, 500)}</pre>
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-12 gap-4 h-[calc(100vh-520px)] animate-slide-up">
             {/* File List */}
             <div className="col-span-3 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-y-auto">

@@ -168,33 +168,55 @@ export default function DiscoverPage() {
           }
         }, 3000);
       } else {
-        // API Discovery mode (existing)
+        // API Discovery mode — use WebSocket for real-time progress
         const job = await apiClient.startDiscovery({
           scope: { type: scopeType, id: scopeId.trim() },
           resource_types: selectedTypes,
         });
         setJobId(job.job_id);
 
-        const pollInterval = setInterval(async () => {
-          try {
-            const s = await apiClient.getDiscoveryStatus(job.job_id);
-            setStatus(s);
-            if (s.status === "completed") {
+        // Connect to WebSocket for streaming updates
+        const wsUrl = apiClient.getWebSocketUrl(job.job_id);
+        const ws = new WebSocket(wsUrl);
+
+        ws.onmessage = async (event) => {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "progress") {
+            setStatus({ job_id: job.job_id, status: "running", progress: msg.data, resources_found: 0 });
+          } else if (msg.type === "complete") {
+            ws.close();
+            const r = await apiClient.getDiscoveryResults(job.job_id);
+            setResult(r);
+            setIsRunning(false);
+          } else if (msg.type === "heartbeat") {
+            // Keep alive, no action
+          }
+        };
+
+        ws.onerror = () => {
+          // Fallback to polling if WS fails
+          ws.close();
+          const pollInterval = setInterval(async () => {
+            try {
+              const s = await apiClient.getDiscoveryStatus(job.job_id);
+              setStatus(s);
+              if (s.status === "completed") {
+                clearInterval(pollInterval);
+                const r = await apiClient.getDiscoveryResults(job.job_id);
+                setResult(r);
+                setIsRunning(false);
+              } else if (s.status === "failed") {
+                clearInterval(pollInterval);
+                setError(s.error || "Discovery failed");
+                setIsRunning(false);
+              }
+            } catch (e) {
               clearInterval(pollInterval);
-              const r = await apiClient.getDiscoveryResults(job.job_id);
-              setResult(r);
-              setIsRunning(false);
-            } else if (s.status === "failed") {
-              clearInterval(pollInterval);
-              setError(s.error || "Discovery failed");
+              setError(e instanceof Error ? e.message : "Polling failed");
               setIsRunning(false);
             }
-          } catch (e) {
-            clearInterval(pollInterval);
-            setError(e instanceof Error ? e.message : "Status check failed");
-            setIsRunning(false);
-          }
-        }, 2000);
+          }, 2000);
+        };
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start discovery");

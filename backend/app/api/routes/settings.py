@@ -48,9 +48,14 @@ async def get_ai_settings() -> dict:
 async def configure_provider(request: ConfigureProviderRequest) -> dict:
     """Configure an AI provider with API key and optional settings."""
     from app.services.persistence import audit
+    from app.core.ssrf import validate_ai_endpoint_url
 
     if request.provider != AIProvider.OLLAMA and not request.api_key:
         raise HTTPException(status_code=400, detail="API key is required for this provider")
+
+    # SSRF protection: validate custom endpoint URLs
+    if request.endpoint_url:
+        validate_ai_endpoint_url(request.endpoint_url)
 
     set_provider_config(
         provider=request.provider,
