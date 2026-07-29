@@ -11,7 +11,7 @@ export type ResourceType =
   | "monitoring_alert" | "ssl_policy" | "instance_group" | "bigtable_instance"
   | "compute_disk" | "vertex_ai_endpoint" | "compute_snapshot" | "instance_template"
   | "compute_image" | "compute_reservation" | "dns_policy" | "vpc_connector"
-  | "compute_route" | "health_check";
+  | "compute_route" | "health_check" | "gcp_folder" | "gcp_project";
 
 export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   compute_instance: "Compute Engine",
@@ -61,6 +61,8 @@ export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   vpc_connector: "VPC Connectors",
   compute_route: "Routes",
   health_check: "Health Checks",
+  gcp_folder: "Folders",
+  gcp_project: "Projects",
 };
 
 /** Resource types grouped by category for better UI organization */
@@ -74,6 +76,7 @@ export const RESOURCE_CATEGORIES: Record<string, ResourceType[]> = {
   "Data & AI": ["dataflow_job", "vertex_ai_endpoint", "composer"],
   "Observability": ["logging_sink", "monitoring_alert"],
   "CI/CD": ["artifact_registry"],
+  "Resource Hierarchy": ["gcp_folder", "gcp_project"],
 };
 
 export const ALL_RESOURCE_TYPES: ResourceType[] = Object.values(RESOURCE_CATEGORIES).flat();

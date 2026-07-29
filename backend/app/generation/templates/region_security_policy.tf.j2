@@ -1,0 +1,37 @@
+resource "google_compute_region_security_policy" "{{ resource.terraform_resource_name }}" {
+  project = "{{ resource.project }}"
+  name    = "{{ resource.name }}"
+  region  = "{{ attrs.region }}"
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+
+{% for rule in attrs.rules %}
+  rule {
+    action   = "{{ rule.action }}"
+    priority = {{ rule.priority }}
+{% if rule.description %}
+    description = "{{ rule.description }}"
+{% endif %}
+{% if rule.preview %}
+    preview  = true
+{% endif %}
+
+    match {
+{% if rule.match.get('expression') %}
+      expr {
+        expression = "{{ rule.match.expression | replace('\n', ' ') | replace('\\n', ' ') | trim }}"
+      }
+{% elif rule.match.get('versioned_expr') %}
+      versioned_expr = "{{ rule.match.versioned_expr }}"
+{% if rule.match.get('src_ip_ranges') %}
+      config {
+        src_ip_ranges = [{% for ip in rule.match.src_ip_ranges %}"{{ ip }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+      }
+{% endif %}
+{% endif %}
+    }
+  }
+
+{% endfor %}
+}

@@ -1,0 +1,4 @@
+resource "google_folder" "{{ resource.terraform_resource_name }}" {
+  display_name = "{{ attrs.display_name }}"
+  parent       = "{{ attrs.parent }}"
+}

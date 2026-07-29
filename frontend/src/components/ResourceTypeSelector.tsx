@@ -34,6 +34,7 @@ const CATEGORY_META: Record<string, { icon: React.ElementType; accent: string; a
   "Data & AI": { icon: BrainCircuit, accent: "from-cyan-500 to-cyan-600", accentBg: "bg-cyan-500/10", accentText: "text-cyan-400", accentBorder: "border-cyan-400/30" },
   "Observability": { icon: Activity, accent: "from-orange-500 to-orange-600", accentBg: "bg-orange-500/10", accentText: "text-orange-400", accentBorder: "border-orange-400/30" },
   "CI/CD": { icon: GitBranch, accent: "from-indigo-500 to-indigo-600", accentBg: "bg-indigo-500/10", accentText: "text-indigo-400", accentBorder: "border-indigo-400/30" },
+  "Resource Hierarchy": { icon: Network, accent: "from-slate-500 to-slate-600", accentBg: "bg-slate-500/10", accentText: "text-slate-400", accentBorder: "border-slate-400/30" },
 };
 
 interface ResourceTypeSelectorProps {

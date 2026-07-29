@@ -1,0 +1,22 @@
+module "{{ resource.terraform_resource_name }}" {
+  source  = "terraform-google-modules/project-factory/google"
+  version = "~> 17.0"
+
+  name       = "{{ attrs.name }}"
+  project_id = "{{ attrs.project_id }}"
+{% if attrs.parent %}
+{% if 'folders/' in attrs.parent %}
+  folder_id  = "{{ attrs.parent | replace('folders/', '') }}"
+{% elif 'organizations/' in attrs.parent %}
+  org_id     = "{{ attrs.parent | replace('organizations/', '') }}"
+{% endif %}
+{% endif %}
+
+{% if attrs.labels %}
+  labels = {
+{% for key, value in attrs.labels.items() %}
+    {{ key }} = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+}

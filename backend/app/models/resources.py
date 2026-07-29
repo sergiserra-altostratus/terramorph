@@ -56,6 +56,8 @@ class ResourceType(str, Enum):
     VPC_CONNECTOR = "vpc_connector"
     COMPUTE_ROUTE = "compute_route"
     HEALTH_CHECK = "health_check"
+    GCP_FOLDER = "gcp_folder"
+    GCP_PROJECT = "gcp_project"
 
     # AWS Resource Types
     AWS_EC2_INSTANCE = "aws_ec2_instance"
@@ -159,6 +161,8 @@ class ResourceSummary(BaseModel):
     vpc_connector: int = 0
     compute_route: int = 0
     health_check: int = 0
+    gcp_folder: int = 0
+    gcp_project: int = 0
 
     @property
     def total(self) -> int:

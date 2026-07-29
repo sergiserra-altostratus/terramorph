@@ -31,6 +31,7 @@ MODULE_TEMPLATE_MAP = {
     ResourceType.STATIC_IP: "modules/address.tf.j2",
     ResourceType.CLOUD_SCHEDULER: "modules/scheduled_function.tf.j2",
     ResourceType.MONITORING_ALERT: "modules/monitoring.tf.j2",
+    ResourceType.GCP_PROJECT: "modules/project.tf.j2",
 }
 
 RESOURCE_TYPE_FILE_MAP = {
@@ -81,6 +82,8 @@ RESOURCE_TYPE_FILE_MAP = {
     ResourceType.VPC_CONNECTOR: "vpc_connectors.tf",
     ResourceType.COMPUTE_ROUTE: "routes.tf",
     ResourceType.HEALTH_CHECK: "healthchecks.tf",
+    ResourceType.GCP_FOLDER: "hierarchy.tf",
+    ResourceType.GCP_PROJECT: "hierarchy.tf",
 }
 
 RESOURCE_TYPE_TEMPLATE_MAP = {
@@ -131,6 +134,8 @@ RESOURCE_TYPE_TEMPLATE_MAP = {
     ResourceType.VPC_CONNECTOR: "vpc_connector.tf.j2",
     ResourceType.COMPUTE_ROUTE: "compute_route.tf.j2",
     ResourceType.HEALTH_CHECK: "health_check.tf.j2",
+    ResourceType.GCP_FOLDER: "folder.tf.j2",
+    ResourceType.GCP_PROJECT: "project.tf.j2",
 }
 
 
@@ -163,9 +168,19 @@ class HCLRenderer:
         template = self.env.get_template("backend.tf.j2")
         return template.render(bucket=bucket, prefix=prefix)
 
+    # Override templates for regional variants that share a ResourceType
+    REGIONAL_TEMPLATE_OVERRIDES = {
+        "google_compute_region_security_policy": "region_security_policy.tf.j2",
+        "google_compute_region_health_check": "health_check.tf.j2",  # Same template works
+        "google_compute_forwarding_rule": "load_balancer.tf.j2",  # Regional uses same structure
+    }
+
     def render_resource(self, resource: DiscoveredResource) -> str:
         """Render a single resource to HCL."""
-        template_name = RESOURCE_TYPE_TEMPLATE_MAP.get(resource.type)
+        # Check for regional overrides first
+        template_name = self.REGIONAL_TEMPLATE_OVERRIDES.get(resource.terraform_resource_type)
+        if not template_name:
+            template_name = RESOURCE_TYPE_TEMPLATE_MAP.get(resource.type)
         if not template_name:
             return f"# Unsupported resource type: {resource.type}\n"
 

@@ -29,6 +29,7 @@ from app.discovery.dns import CloudDNSDiscoverer
 from app.discovery.dns_policy import DNSPolicyDiscoverer
 from app.discovery.filestore import FilestoreDiscoverer
 from app.discovery.firewall import FirewallDiscoverer
+from app.discovery.folders import FolderDiscoverer
 from app.discovery.functions import CloudFunctionsDiscoverer
 from app.discovery.gke import GKEDiscoverer
 from app.discovery.health_check import HealthCheckDiscoverer
@@ -42,6 +43,7 @@ from app.discovery.logging_sinks import LoggingSinksDiscoverer
 from app.discovery.monitoring import MonitoringAlertsDiscoverer
 from app.discovery.nat import CloudNATDiscoverer
 from app.discovery.network import NetworkDiscoverer
+from app.discovery.projects_resource import ProjectDiscoverer
 from app.discovery.pubsub import PubSubDiscoverer
 from app.discovery.redis import MemorystoreDiscoverer
 from app.discovery.scheduler import CloudSchedulerDiscoverer
@@ -114,6 +116,8 @@ DISCOVERER_MAP = {
     ResourceType.VPC_CONNECTOR: VPCAccessConnectorDiscoverer,
     ResourceType.COMPUTE_ROUTE: ComputeRouteDiscoverer,
     ResourceType.HEALTH_CHECK: HealthCheckDiscoverer,
+    ResourceType.GCP_FOLDER: FolderDiscoverer,
+    ResourceType.GCP_PROJECT: ProjectDiscoverer,
 }
 
 
@@ -245,13 +249,18 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
         )
 
         if not projects:
-            job["status"] = JobStatus.FAILED
-            job["error"] = f"No projects found in {request.scope.type.value} '{request.scope.id}'. Check permissions."
-            job["progress"].message = job["error"]
-            await _notify(job_id, job["progress"])
-            from app.services.persistence import update_job
-            update_job(job_id, "failed", 0, job["error"])
-            return
+            # Check if user only requested hierarchy types (folders/projects) which don't need resolved projects
+            hierarchy_only = all(rt in (ResourceType.GCP_FOLDER, ResourceType.GCP_PROJECT) for rt in request.resource_types)
+            if not hierarchy_only:
+                job["status"] = JobStatus.FAILED
+                job["error"] = f"No projects found in {request.scope.type.value} '{request.scope.id}'. Check permissions."
+                job["progress"].message = job["error"]
+                await _notify(job_id, job["progress"])
+                from app.services.persistence import update_job
+                update_job(job_id, "failed", 0, job["error"])
+                return
+            # Allow empty projects list for hierarchy-only discovery
+            projects = []
 
         total_types = len(request.resource_types)
         all_resources: list[DiscoveredResource] = []
@@ -272,20 +281,39 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
             await _notify(job_id, progress)
 
             discoverer = discoverer_class(credentials)
-            for project_id in projects:
+
+            # Resource Hierarchy types need the original scope ID, not individual projects
+            if resource_type in (ResourceType.GCP_FOLDER, ResourceType.GCP_PROJECT):
                 try:
                     resources = await asyncio.wait_for(
-                        discoverer.discover(project_id),
-                        timeout=60.0,  # 60s timeout per resource type per project
+                        discoverer.discover(request.scope.id),
+                        timeout=60.0,
                     )
                     all_resources.extend(resources)
                 except asyncio.TimeoutError:
-                    err_msg = f"Timeout discovering {resource_type.value} in {project_id} (>60s)"
+                    err_msg = f"Timeout discovering {resource_type.value} (>60s)"
                     logger.warning(err_msg)
                     errors.append(err_msg)
                 except Exception as e:
-                    err_msg = f"Error discovering {resource_type.value} in {project_id}: {str(e)[:100]}"
+                    err_msg = f"Error discovering {resource_type.value}: {str(e)[:100]}"
                     logger.warning(err_msg)
+                    errors.append(err_msg)
+            else:
+                for project_id in projects:
+                    try:
+                        resources = await asyncio.wait_for(
+                            discoverer.discover(project_id),
+                            timeout=60.0,
+                        )
+                        all_resources.extend(resources)
+                    except asyncio.TimeoutError:
+                        err_msg = f"Timeout discovering {resource_type.value} in {project_id} (>60s)"
+                        logger.warning(err_msg)
+                        errors.append(err_msg)
+                    except Exception as e:
+                        err_msg = f"Error discovering {resource_type.value} in {project_id}: {str(e)[:100]}"
+                        logger.warning(err_msg)
+                        errors.append(err_msg)
                     errors.append(err_msg)
 
         job["resources"] = all_resources
