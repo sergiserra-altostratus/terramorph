@@ -54,6 +54,9 @@ class ProjectDiscoverer(BaseDiscoverer):
 
     def _to_resource(self, project) -> DiscoveredResource:
         """Convert a GCP project to a DiscoveredResource."""
+        # Fetch billing account from Cloud Billing API
+        billing_account = self._get_billing_account(project.project_id)
+
         return DiscoveredResource(
             id=str(uuid.uuid4()),
             type=ResourceType.GCP_PROJECT,
@@ -68,5 +71,20 @@ class ProjectDiscoverer(BaseDiscoverer):
                 "name": project.display_name or "",
                 "parent": project.parent or "",
                 "labels": dict(project.labels) if project.labels else {},
+                "billing_account": billing_account,
             },
         )
+
+    def _get_billing_account(self, project_id: str) -> str:
+        """Fetch the billing account linked to a project via Cloud Billing API."""
+        try:
+            from googleapiclient.discovery import build
+            service = build("cloudbilling", "v1", credentials=self.credentials)
+            result = service.projects().getBillingInfo(name=f"projects/{project_id}").execute()
+            billing_account = result.get("billingAccountName", "")
+            # Format: billingAccounts/XXXXXX-YYYYYY-ZZZZZZ → extract just the ID
+            if billing_account:
+                return billing_account.replace("billingAccounts/", "")
+            return ""
+        except Exception:
+            return ""

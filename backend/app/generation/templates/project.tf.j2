@@ -8,6 +8,9 @@ resource "google_project" "{{ resource.terraform_resource_name }}" {
   org_id     = "{{ attrs.parent | replace('organizations/', '') }}"
 {% endif %}
 {% endif %}
+{% if attrs.billing_account %}
+  billing_account = "{{ attrs.billing_account }}"
+{% endif %}
 
 {% if attrs.labels %}
   labels = {
