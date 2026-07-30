@@ -314,7 +314,6 @@ async def _run_discovery(job_id: str, request: DiscoveryRequest) -> None:
                         err_msg = f"Error discovering {resource_type.value} in {project_id}: {str(e)[:100]}"
                         logger.warning(err_msg)
                         errors.append(err_msg)
-                    errors.append(err_msg)
 
         job["resources"] = all_resources
         job["status"] = JobStatus.COMPLETED

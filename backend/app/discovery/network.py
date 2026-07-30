@@ -87,6 +87,32 @@ class NetworkDiscoverer(BaseDiscoverer):
                 f"Discovered {len(resources)} network resources in {project_id}"
             )
 
+            # Enrich VPC resources with their subnets (for module rendering)
+            subnet_resources = [r for r in resources if r.type == ResourceType.SUBNET]
+            vpc_resources = [r for r in resources if r.type == ResourceType.VPC_NETWORK]
+
+            for vpc in vpc_resources:
+                vpc_subnets = [
+                    {
+                        "name": s.name,
+                        "ip_cidr_range": s.attributes.get("ip_cidr_range", ""),
+                        "region": s.attributes.get("region", ""),
+                        "private_ip_google_access": s.attributes.get("private_ip_google_access", False),
+                        "purpose": s.attributes.get("purpose", "PRIVATE"),
+                    }
+                    for s in subnet_resources
+                    if s.attributes.get("network") == vpc.name
+                ]
+                vpc.attributes["subnets"] = vpc_subnets
+
+                # Group secondary ranges by subnet name
+                secondary_ranges = {}
+                for s in subnet_resources:
+                    if s.attributes.get("network") == vpc.name and s.attributes.get("secondary_ip_ranges"):
+                        secondary_ranges[s.name] = s.attributes["secondary_ip_ranges"]
+                if secondary_ranges:
+                    vpc.attributes["secondary_ranges"] = secondary_ranges
+
         except Exception as e:
             logger.error(f"Error discovering networks in {project_id}: {e}")
 

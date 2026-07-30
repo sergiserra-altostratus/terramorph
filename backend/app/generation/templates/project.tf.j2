@@ -20,3 +20,13 @@ resource "google_project" "{{ resource.terraform_resource_name }}" {
   }
 {% endif %}
 }
+
+{% for api in attrs.activate_apis %}
+resource "google_project_service" "{{ resource.terraform_resource_name }}_{{ api | replace('.googleapis.com', '') | replace('.', '_') | replace('-', '_') }}" {
+  project = "{{ attrs.project_id }}"
+  service = "{{ api }}"
+
+  disable_on_destroy = false
+}
+
+{% endfor %}

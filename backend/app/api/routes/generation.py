@@ -79,7 +79,12 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
 
     # Generate import blocks (.tf format - Terraform 1.5+)
     if request.options.include_import_script:
-        import_content = _import_gen.generate(resources)
+        import_resources = resources
+        # In module style, subnets are managed by the VPC module — don't generate separate imports
+        if request.options.generation_style == GenerationStyle.MODULE:
+            from app.models.resources import ResourceType as RT
+            import_resources = [r for r in resources if r.type != RT.SUBNET]
+        import_content = _import_gen.generate(import_resources)
         files.append(GeneratedFile(filename="import.tf", content=import_content))
 
     # Apply AI cleaning if enabled

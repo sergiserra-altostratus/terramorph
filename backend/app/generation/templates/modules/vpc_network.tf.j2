@@ -14,5 +14,38 @@ module "{{ resource.terraform_resource_name }}" {
   description             = "{{ attrs.description }}"
 {% endif %}
 
+{% if attrs.subnets %}
+  subnets = [
+{% for subnet in attrs.subnets %}
+    {
+      subnet_name           = "{{ subnet.name }}"
+      subnet_ip             = "{{ subnet.ip_cidr_range }}"
+      subnet_region         = "{{ subnet.region }}"
+{% if subnet.private_ip_google_access %}
+      subnet_private_access = "true"
+{% endif %}
+{% if subnet.purpose and subnet.purpose != "PRIVATE" %}
+      purpose               = "{{ subnet.purpose }}"
+{% endif %}
+    },
+{% endfor %}
+  ]
+{% else %}
   subnets = []
+{% endif %}
+
+{% if attrs.secondary_ranges %}
+  secondary_ranges = {
+{% for subnet_name, ranges in attrs.secondary_ranges.items() %}
+    {{ subnet_name }} = [
+{% for range in ranges %}
+      {
+        range_name    = "{{ range.range_name }}"
+        ip_cidr_range = "{{ range.ip_cidr_range }}"
+      },
+{% endfor %}
+    ]
+{% endfor %}
+  }
+{% endif %}
 }

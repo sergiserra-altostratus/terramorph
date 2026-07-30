@@ -243,6 +243,8 @@ class HCLRenderer:
     def render_all_as_modules(self, resources: list[DiscoveredResource]) -> str:
         """Render all resources as modules into a single file."""
         resources = self._deduplicate_names(resources)
+        # Exclude subnets — they're included inside the VPC network module
+        resources = [r for r in resources if r.type != ResourceType.SUBNET]
         blocks = []
         for resource in resources:
             blocks.append(self.render_resource_as_module(resource))
@@ -255,6 +257,8 @@ class HCLRenderer:
             Dictionary mapping filename to HCL content.
         """
         resources = self._deduplicate_names(resources)
+        # Exclude subnets — they're included inside the VPC network module
+        resources = [r for r in resources if r.type != ResourceType.SUBNET]
         grouped: dict[str, list[str]] = {}
 
         for resource in resources:

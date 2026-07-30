@@ -54,8 +54,8 @@ class ProjectDiscoverer(BaseDiscoverer):
 
     def _to_resource(self, project) -> DiscoveredResource:
         """Convert a GCP project to a DiscoveredResource."""
-        # Fetch billing account from Cloud Billing API
         billing_account = self._get_billing_account(project.project_id)
+        enabled_apis = self._get_enabled_apis(project.project_id)
 
         return DiscoveredResource(
             id=str(uuid.uuid4()),
@@ -72,6 +72,7 @@ class ProjectDiscoverer(BaseDiscoverer):
                 "parent": project.parent or "",
                 "labels": dict(project.labels) if project.labels else {},
                 "billing_account": billing_account,
+                "activate_apis": enabled_apis,
             },
         )
 
@@ -82,9 +83,33 @@ class ProjectDiscoverer(BaseDiscoverer):
             service = build("cloudbilling", "v1", credentials=self.credentials)
             result = service.projects().getBillingInfo(name=f"projects/{project_id}").execute()
             billing_account = result.get("billingAccountName", "")
-            # Format: billingAccounts/XXXXXX-YYYYYY-ZZZZZZ → extract just the ID
             if billing_account:
                 return billing_account.replace("billingAccounts/", "")
             return ""
         except Exception:
             return ""
+
+    def _get_enabled_apis(self, project_id: str) -> list[str]:
+        """Fetch enabled APIs for a project via Service Usage API."""
+        apis = []
+        try:
+            from googleapiclient.discovery import build
+            service = build("serviceusage", "v1", credentials=self.credentials)
+            request = service.services().list(
+                parent=f"projects/{project_id}",
+                filter="state:ENABLED",
+                pageSize=200,
+            )
+            while request:
+                response = request.execute()
+                for svc in response.get("services", []):
+                    # Format: projects/123/services/compute.googleapis.com → extract API name
+                    api_name = svc.get("config", {}).get("name", "")
+                    if api_name:
+                        apis.append(api_name)
+                request = service.services().list_next(
+                    previous_request=request, previous_response=response
+                )
+        except Exception as e:
+            logger.warning(f"Could not fetch APIs for {project_id}: {e}")
+        return sorted(apis)

@@ -15,6 +15,14 @@ module "{{ resource.terraform_resource_name }}" {
   billing_account = "{{ attrs.billing_account }}"
 {% endif %}
 
+{% if attrs.activate_apis %}
+  activate_apis = [
+{% for api in attrs.activate_apis %}
+    "{{ api }}",
+{% endfor %}
+  ]
+{% endif %}
+
 {% if attrs.labels %}
   labels = {
 {% for key, value in attrs.labels.items() %}
