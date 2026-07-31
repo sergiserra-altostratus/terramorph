@@ -123,6 +123,24 @@ Real-time terminal showing every Terraform operation with a full pipeline:
 ### Settings
 Configure AI providers (OpenAI, Anthropic, Gemini, Ollama, etc.) and AWS credentials.
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| **Backend** | Python 3.12+, FastAPI, Pydantic, Uvicorn |
+| **CLI** | Rust, Clap, Reqwest |
+| **IaC Engine** | Terraform 1.5+, Jinja2 templates |
+| **AI Providers** | OpenAI, Anthropic, Google Gemini, Ollama, DeepSeek, Mistral |
+| **Cloud SDKs** | Google Cloud Python SDK, Boto3 (AWS) |
+| **Real-time** | WebSocket (FastAPI + native browser API) |
+| **Terminal Font** | MesloLGS Nerd Font Mono |
+| **Containers** | Docker, Docker Compose |
+| **State Backend** | GCS (Google Cloud Storage) |
+| **Auth** | Bearer token (auto-generated), GCP ADC, AWS IAM credentials |
+| **Database** | SQLite (local persistence for settings/history) |
+| **Security** | Input validation, SSRF protection, credential redaction, path sanitization |
+
 ## Required GCP Permissions
 
 Minimum IAM roles for the authenticated user/service account:
