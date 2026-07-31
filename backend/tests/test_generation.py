@@ -67,11 +67,10 @@ def test_render_by_type():
 
 
 def test_import_generator():
-    """Test import script generation."""
+    """Test import block generation (Terraform 1.5+ native syntax)."""
     gen = ImportGenerator()
     resources = [_make_resource()]
     content = gen.generate(resources)
-    assert "#!/bin/bash" in content
-    assert "terraform import" in content
+    assert "import {" in content
     assert "google_compute_instance.test_vm" in content
     assert "projects/my-project/zones/us-central1-a/instances/test-vm" in content

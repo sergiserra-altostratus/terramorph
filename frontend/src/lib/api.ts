@@ -97,6 +97,8 @@ export interface GenerationResult {
   files: GeneratedFile[];
   total_resources: number;
   import_commands: number;
+  ai_cleaned?: boolean;
+  ai_diff?: Array<{ filename: string; before?: string; after?: string }> | null;
 }
 
 class ApiClient {
@@ -193,6 +195,10 @@ class ApiClient {
     return this.request(`/drift/results/${jobId}`);
   }
 
+  async cancelDrift(jobId: string): Promise<{ job_id: string; status: string; message: string }> {
+    return this.request(`/drift/cancel/${jobId}`, { method: "POST" });
+  }
+
   async getBulkExportAvailability(): Promise<{ available: boolean; resource_types: string[]; total_types: number }> {
     return this.request("/bulk-export/available");
   }
@@ -256,6 +262,14 @@ class ApiClient {
       .replace("https://", "wss://")
       .replace("/api/v1", "");
     return `${wsBase}/ws/discovery/${jobId}`;
+  }
+
+  getDriftWebSocketUrl(jobId: string): string {
+    const wsBase = this.baseUrl
+      .replace("http://", "ws://")
+      .replace("https://", "wss://")
+      .replace("/api/v1", "");
+    return `${wsBase}/ws/drift/${jobId}`;
   }
 }
 

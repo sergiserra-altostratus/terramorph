@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   RefreshCw,
@@ -13,8 +13,12 @@ import {
   BrainCircuit,
   Database,
   Download,
+  Circle,
+  Square,
 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import Terminal from "@/components/Terminal";
+import { useDriftWebSocket } from "@/lib/useDriftWebSocket";
 
 interface Prerequisites {
   ai_configured: boolean;
@@ -23,7 +27,16 @@ interface Prerequisites {
   missing: string[];
 }
 
-export default function DriftPage() {
+const phases = [
+  { key: "init", label: "Init" },
+  { key: "plan", label: "Plan" },
+  { key: "fix", label: "AI Fix" },
+  { key: "import", label: "Import" },
+  { key: "verify", label: "Verify" },
+  { key: "done", label: "Done" },
+];
+
+function DriftPageContent() {
   const searchParams = useSearchParams();
   const fromGenerate = searchParams.get("from_generate") === "true";
   const sourceJobId = searchParams.get("job_id");
@@ -35,28 +48,79 @@ export default function DriftPage() {
   const [tfContent, setTfContent] = useState("");
   const [detectedProjects, setDetectedProjects] = useState<string[]>([]);
   const [allGeneratedFiles, setAllGeneratedFiles] = useState<Array<{filename: string; content: string}>>([]);
+  const [importContent, setImportContent] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<any>(null);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [terminalCollapsed, setTerminalCollapsed] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  // WebSocket hook for real-time streaming
+  const { lines, isConnected, currentPhase, phaseMessage, isComplete, error: wsError } = useDriftWebSocket(jobId);
 
   useEffect(() => {
     apiClient.getDriftPrerequisites().then(setPrereqs).catch(() => null);
   }, []);
 
+  // When WebSocket completes, fetch results
+  useEffect(() => {
+    if (isComplete && jobId) {
+      apiClient.getDriftResults(jobId)
+        .then((r) => {
+          setResults(r);
+          setRunning(false);
+          setCancelling(false);
+        })
+        .catch((e) => {
+          // Job might have been cancelled
+          setRunning(false);
+          setCancelling(false);
+        });
+    }
+  }, [isComplete, jobId]);
+
+  // Fallback: if WebSocket fails, use polling
+  useEffect(() => {
+    if (wsError && jobId && running) {
+      const pollInterval = setInterval(async () => {
+        try {
+          const s = await apiClient.getDriftStatus(jobId);
+          setStatus(s);
+          if (s.status === "completed" || s.status === "failed" || s.status === "cancelled") {
+            clearInterval(pollInterval);
+            if (s.status === "completed") {
+              const r = await apiClient.getDriftResults(jobId);
+              setResults(r);
+            } else if (s.status === "cancelled") {
+              setError("Process cancelled by user.");
+            } else {
+              setError(s.error || "Drift detection failed");
+            }
+            setRunning(false);
+            setCancelling(false);
+          }
+        } catch (e) {
+          clearInterval(pollInterval);
+          setError(e instanceof Error ? e.message : "Status check failed");
+          setRunning(false);
+          setCancelling(false);
+        }
+      }, 3000);
+      return () => clearInterval(pollInterval);
+    }
+  }, [wsError, jobId, running]);
+
   // Filter TF content when project selection changes (multi-project scenario)
   useEffect(() => {
     if (detectedProjects.length > 1 && projectId && allGeneratedFiles.length > 0) {
-      // Filter resource blocks that belong to the selected project
       const filteredBlocks: string[] = [];
       for (const file of allGeneratedFiles) {
-        // Split content into resource blocks
         const blocks = file.content.split(/(?=\nresource |^resource )/);
         for (const block of blocks) {
           const trimmed = block.trim();
           if (!trimmed) continue;
-          // Include block if it contains project = "selected_project" or has no project field
           if (trimmed.includes(`project = "${projectId}"`) || !trimmed.match(/project\s*=\s*"/)) {
             filteredBlocks.push(trimmed);
           }
@@ -71,7 +135,6 @@ export default function DriftPage() {
   // Auto-load generated files from previous generation
   useEffect(() => {
     if (fromGenerate && sourceJobId) {
-      // Try to load the latest generation for this job
       apiClient.request<any>("/generations?limit=1")
         .then((data) => {
           const gen = data.generations?.[0];
@@ -81,19 +144,25 @@ export default function DriftPage() {
         })
         .then((genData) => {
           if (genData && genData.files) {
-            // Store all files for later filtering
             const resourceFiles = genData.files.filter(
-              (f: any) => f.filename.endsWith(".tf") && f.filename !== "provider.tf" && f.filename !== "import.tf" && f.filename !== "backend.tf"
+              (f: any) => f.filename.endsWith(".tf") && f.filename !== "provider.tf" && f.filename !== "backend.tf"
             );
             setAllGeneratedFiles(resourceFiles);
 
-            // Concatenate all .tf files as content (exclude backend.tf and provider.tf — drift service generates these)
-            const allTf = resourceFiles
+            // Separate import.tf from display content (user doesn't need to edit imports)
+            const importFile = genData.files.find((f: any) => f.filename === "import.tf");
+            const displayFiles = resourceFiles.filter((f: any) => f.filename !== "import.tf");
+
+            const allTf = displayFiles
               .map((f: any) => `# --- ${f.filename} ---\n${f.content}`)
               .join("\n\n");
             setTfContent(allTf);
 
-            // Try to extract bucket/prefix from backend.tf if present
+            // Store import content separately
+            if (importFile) {
+              setImportContent(importFile.content);
+            }
+
             const backendFile = genData.files.find((f: any) => f.filename === "backend.tf");
             if (backendFile) {
               const bucketMatch = backendFile.content.match(/bucket\s*=\s*"([^"]+)"/);
@@ -102,16 +171,15 @@ export default function DriftPage() {
               if (prefixMatch) setPrefix(prefixMatch[1]);
             }
 
-            // Auto-detect projects from resource blocks
             const projectMatches = allTf.match(/project\s*=\s*"([^"]+)"/g) || [];
-            const detectedProjects = [...new Set(
+            const detected = Array.from(new Set(
               projectMatches.map((m: string) => m.match(/"([^"]+)"/)?.[1]).filter(Boolean)
-            )] as string[];
-            if (detectedProjects.length === 1) {
-              setProjectId(detectedProjects[0]);
-            } else if (detectedProjects.length > 1) {
-              setDetectedProjects(detectedProjects);
-              setProjectId(detectedProjects[0]);
+            )) as string[];
+            if (detected.length === 1) {
+              setProjectId(detected[0]);
+            } else if (detected.length > 1) {
+              setDetectedProjects(detected);
+              setProjectId(detected[0]);
             }
           }
         })
@@ -128,9 +196,43 @@ export default function DriftPage() {
     setError(null);
     setRunning(true);
     setResults(null);
+    setTerminalCollapsed(false);
+    setCancelling(false);
 
-    // Parse tf content into files (simple: treat as main.tf)
-    const tf_files: Record<string, string> = { "main.tf": tfContent };
+    // Parse file markers (# --- filename.tf ---) into separate files
+    // If no markers found, send as single main.tf
+    const tf_files: Record<string, string> = {};
+    const markerRegex = /^# --- (.+\.tf) ---$/;
+    let currentFile: string | null = null;
+    let currentLines: string[] = [];
+
+    for (const line of tfContent.split("\n")) {
+      const match = line.match(markerRegex);
+      if (match) {
+        // Save previous file
+        if (currentFile && currentLines.length > 0) {
+          tf_files[currentFile] = currentLines.join("\n").trim();
+        }
+        currentFile = match[1];
+        currentLines = [];
+      } else {
+        currentLines.push(line);
+      }
+    }
+    // Save last file
+    if (currentFile && currentLines.length > 0) {
+      tf_files[currentFile] = currentLines.join("\n").trim();
+    }
+
+    // If no markers were found, treat entire content as main.tf
+    if (Object.keys(tf_files).length === 0) {
+      tf_files["main.tf"] = tfContent.trim();
+    }
+
+    // Include import.tf if available (auto-loaded from Generate)
+    if (importContent) {
+      tf_files["import.tf"] = importContent;
+    }
 
     try {
       const job = await apiClient.startDriftDetection({
@@ -140,37 +242,27 @@ export default function DriftPage() {
         project_id: projectId.trim(),
       });
       setJobId(job.job_id);
-
-      // Poll for status
-      const pollInterval = setInterval(async () => {
-        try {
-          const s = await apiClient.getDriftStatus(job.job_id);
-          setStatus(s);
-
-          if (s.status === "completed" || s.status === "failed") {
-            clearInterval(pollInterval);
-            if (s.status === "completed") {
-              const r = await apiClient.getDriftResults(job.job_id);
-              setResults(r);
-            } else {
-              setError(s.error || "Drift detection failed");
-            }
-            setRunning(false);
-          }
-        } catch (e) {
-          clearInterval(pollInterval);
-          setError(e instanceof Error ? e.message : "Status check failed");
-          setRunning(false);
-        }
-      }, 3000);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to start drift detection");
       setRunning(false);
     }
   };
 
+  const stopDrift = useCallback(async () => {
+    if (!jobId) return;
+    setCancelling(true);
+    try {
+      await apiClient.cancelDrift(jobId);
+    } catch {
+      // Even if the API call fails, UI shows cancelling state
+    }
+  }, [jobId]);
+
+  // Has the job ever been started (show terminal area)
+  const hasJob = jobId !== null;
+
   return (
-    <div className="space-y-6 animate-fade-in max-w-4xl">
+    <div className="space-y-5 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
@@ -215,10 +307,10 @@ export default function DriftPage() {
         </div>
       )}
 
-      {/* Configuration + Code Editor — Side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* Configuration + Code Editor + Terminal */}
+      <div className={`grid grid-cols-1 gap-4 ${hasJob ? "lg:grid-cols-12" : "lg:grid-cols-12"}`}>
         {/* Left: Configuration */}
-        <div className="lg:col-span-4 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 space-y-4">
+        <div className="lg:col-span-3 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Configuration
@@ -278,19 +370,33 @@ export default function DriftPage() {
             </div>
           </div>
 
-          {/* Start Button */}
-          <button
-            onClick={startDrift}
-            disabled={running || !prereqs?.ready}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-sm hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
-          >
-            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            {running ? "Running..." : "Start Drift Detection"}
-          </button>
+          {/* Action buttons */}
+          <div className="space-y-2">
+            <button
+              onClick={startDrift}
+              disabled={running || !prereqs?.ready}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-sm hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+              {running ? "Running..." : "Start Drift Detection"}
+            </button>
+
+            {/* Stop button — only visible when running */}
+            {running && (
+              <button
+                onClick={stopDrift}
+                disabled={cancelling}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-red-500 to-red-600 text-white text-sm font-medium shadow-sm hover:from-red-400 hover:to-red-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50"
+              >
+                <Square className="h-3.5 w-3.5 fill-current" />
+                {cancelling ? "Stopping..." : "Stop Process"}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Right: Code Editor */}
-        <div className="lg:col-span-8 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden flex flex-col">
+        {/* Center: Code Editor */}
+        <div className={`${hasJob ? "lg:col-span-3" : "lg:col-span-9"} rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden flex flex-col transition-all duration-300`}>
           <div className="px-4 py-2.5 border-b border-border/50 flex items-center justify-between bg-muted/20">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <FileText className="h-3 w-3" />
@@ -300,7 +406,7 @@ export default function DriftPage() {
               {tfContent ? `${tfContent.split("\n").length} lines` : "Paste or auto-load from Generate"}
             </span>
           </div>
-          <div className="flex flex-1 overflow-hidden" style={{ minHeight: "300px", maxHeight: "500px" }}>
+          <div className="flex flex-1 overflow-hidden" style={{ minHeight: "350px", maxHeight: "500px" }}>
             {/* Line numbers */}
             <div className="flex-shrink-0 w-10 bg-muted/30 border-r border-border/50 py-2.5 select-none overflow-hidden">
               <div className="text-[10px] font-mono text-muted-foreground text-right pr-2 leading-[1.65rem]">
@@ -321,6 +427,77 @@ export default function DriftPage() {
             />
           </div>
         </div>
+
+        {/* Right: Terminal — visible once a job starts */}
+        {hasJob && (
+          <div className="lg:col-span-6 flex flex-col space-y-2 animate-slide-up">
+            {/* Phase progress indicator */}
+            <div className="flex items-center gap-1 flex-wrap">
+              {phases.map((phase, i) => {
+                const phaseIndex = phases.findIndex((p) => p.key === currentPhase);
+                const isActive = phase.key === currentPhase;
+                const isDone = i < phaseIndex || currentPhase === "done";
+
+                return (
+                  <div key={phase.key} className="flex items-center">
+                    <div
+                      className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${
+                        isActive
+                          ? "bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300"
+                          : isDone
+                          ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
+                          : "bg-muted/50 text-muted-foreground"
+                      }`}
+                    >
+                      {isActive && running && (
+                        <Circle className="h-1.5 w-1.5 fill-indigo-500 animate-pulse" />
+                      )}
+                      {isDone && <CheckCircle2 className="h-2.5 w-2.5" />}
+                      {phase.label}
+                    </div>
+                    {i < phases.length - 1 && (
+                      <div className={`w-3 h-px mx-0.5 ${isDone ? "bg-green-300 dark:bg-green-600" : "bg-border"}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Connection status */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {running && phaseMessage && (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                    <BrainCircuit className="h-3 w-3 animate-pulse" />
+                    {phaseMessage}
+                  </span>
+                )}
+                {running && !phaseMessage && (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                    <BrainCircuit className="h-3 w-3 animate-pulse" />
+                    Starting...
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className={`h-1.5 w-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-gray-400"}`} />
+                <span className="text-[10px] text-muted-foreground">
+                  {isConnected ? "Live" : wsError ? "Polling" : "..."}
+                </span>
+              </div>
+            </div>
+
+            {/* Terminal component */}
+            <Terminal
+              lines={lines}
+              isActive={running}
+              currentPhase={currentPhase}
+              collapsed={terminalCollapsed}
+              onToggleCollapse={() => setTerminalCollapsed(!terminalCollapsed)}
+              maxHeight="420px"
+            />
+          </div>
+        )}
       </div>
 
       {/* Error */}
@@ -344,30 +521,6 @@ export default function DriftPage() {
                 </p>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Progress */}
-      {running && status && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 animate-slide-up">
-          <div className="flex items-center gap-3 mb-3">
-            <BrainCircuit className="h-4 w-4 text-violet-500 animate-pulse" />
-            <h3 className="text-sm font-medium">AI is working...</h3>
-          </div>
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">{status.progress?.message}</p>
-            <div className="h-2 rounded-full bg-secondary overflow-hidden">
-              <div
-                className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
-                style={{
-                  width: `${status.progress?.max_iterations ? (status.progress.iteration / status.progress.max_iterations) * 100 : 10}%`,
-                }}
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Iteration {status.progress?.iteration || 0} / {status.progress?.max_iterations || 10}
-            </p>
           </div>
         </div>
       )}
@@ -460,5 +613,13 @@ export default function DriftPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function DriftPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse p-8 text-muted-foreground">Loading...</div>}>
+      <DriftPageContent />
+    </Suspense>
   );
 }

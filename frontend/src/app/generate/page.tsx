@@ -422,7 +422,7 @@ function GeneratePageContent() {
                 )}
               </div>
               <a
-                href={apiClient.getDownloadUrl(jobId)}
+                href={apiClient.getDownloadUrl(jobId!)}
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-150"
               >
                 <Download className="h-4 w-4" />
@@ -503,7 +503,7 @@ function GeneratePageContent() {
                     {copied ? "Copied!" : "Copy"}
                   </button>
                   <a
-                    href={apiClient.getDownloadUrl(jobId)}
+                    href={apiClient.getDownloadUrl(jobId!)}
                     className="px-2.5 py-1 text-[11px] font-medium text-white bg-indigo-500 hover:bg-indigo-600 rounded-md transition-colors"
                   >
                     Download

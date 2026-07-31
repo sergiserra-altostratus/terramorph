@@ -8,12 +8,14 @@ import {
   Code,
   Settings,
   RefreshCw,
+  Upload,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Discover", href: "/discover", icon: Search },
   { name: "Generate", href: "/generate", icon: Code },
+  { name: "Auto Import", href: "/auto-import", icon: Upload },
   { name: "Drift Fix", href: "/drift", icon: RefreshCw },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

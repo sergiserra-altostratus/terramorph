@@ -62,7 +62,7 @@ export function AWSResourceTypeSelector({ selectedTypes, onChange, disabled }: A
   const handleSelectCategory = (category: string) => {
     const types = AWS_RESOURCE_CATEGORIES[category];
     const merged = new Set([...selectedTypes, ...types]);
-    onChange([...merged]);
+    onChange(Array.from(merged));
   };
   const handleDeselectCategory = (category: string) => {
     const categoryTypes = new Set(AWS_RESOURCE_CATEGORIES[category] as string[]);

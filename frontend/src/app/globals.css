@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* MesloLGS Nerd Font Mono — Terminal font */
+@font-face {
+  font-family: 'MesloLGS NF';
+  src: url('/fonts/MesloLGSNerdFontMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MesloLGS NF';
+  src: url('/fonts/MesloLGSNerdFontMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     /* Neutral scale (warm-gray, soft on the eyes) */

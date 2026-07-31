@@ -70,7 +70,7 @@ export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: Reso
 
   const handleSelectCategory = (category: string) => {
     const merged = new Set([...selectedTypes, ...RESOURCE_CATEGORIES[category]]);
-    onChange([...merged]);
+    onChange(Array.from(merged));
   };
   const handleDeselectCategory = (category: string) => {
     const categoryTypes = new Set(RESOURCE_CATEGORIES[category]);

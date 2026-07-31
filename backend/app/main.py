@@ -10,7 +10,10 @@ from app.api.routes import settings as ai_settings_routes
 from app.api.routes import drift as drift_routes
 from app.api.routes import bulk_export as bulk_export_routes
 from app.api.routes import aws_discovery as aws_routes
+from app.api.routes import auto_import as auto_import_routes
 from app.api.ws import discovery_ws
+from app.api.ws import drift_ws
+from app.api.ws import auto_import_ws
 from app.config import settings
 from app.core.logging import setup_logging
 
@@ -82,6 +85,9 @@ app.include_router(ai_settings_routes.router, prefix="/api/v1", tags=["settings"
 app.include_router(drift_routes.router, prefix="/api/v1", tags=["drift"])
 app.include_router(bulk_export_routes.router, prefix="/api/v1", tags=["bulk-export"])
 app.include_router(aws_routes.router, prefix="/api/v1", tags=["aws"])
+app.include_router(auto_import_routes.router, prefix="/api/v1", tags=["auto-import"])
 
 # WebSocket
 app.include_router(discovery_ws.router, tags=["websocket"])
+app.include_router(drift_ws.router, tags=["websocket"])
+app.include_router(auto_import_ws.router, tags=["websocket"])

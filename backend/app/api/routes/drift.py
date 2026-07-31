@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.services.ai_settings import is_ai_configured, get_active_config
-from app.services.drift import start_drift_detection, get_drift_job_status
+from app.services.drift import start_drift_detection, get_drift_job_status, cancel_drift_job
 
 router = APIRouter()
 
@@ -121,3 +121,15 @@ async def drift_prerequisites() -> dict:
         if ai_ok
         else ["AI provider not configured. Go to Settings to set one up."],
     }
+
+
+@router.post("/drift/cancel/{job_id}")
+async def cancel_drift(job_id: str) -> dict:
+    """Cancel a running drift detection job."""
+    success = cancel_drift_job(job_id)
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found or not running.",
+        )
+    return {"job_id": job_id, "status": "cancelling", "message": "Cancellation requested."}
