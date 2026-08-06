@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AppShell } from "@/components/AppShell";
+import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 const inter = Inter({
@@ -38,15 +39,17 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AppShell>
-            <div className="flex h-screen overflow-hidden">
-              <Sidebar />
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-y-auto px-6 py-6 lg:px-8 lg:py-8">
-                  {children}
-                </main>
+            <ToastProvider>
+              <div className="flex h-screen overflow-hidden">
+                <Sidebar />
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <Header />
+                  <main className="flex-1 overflow-y-auto px-6 py-6 lg:px-8 lg:py-8">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
+            </ToastProvider>
           </AppShell>
         </ThemeProvider>
       </body>

@@ -233,3 +233,48 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* U4 — Focus-visible rings for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove default outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* U9 — Ensure minimum contrast on muted text */
+.text-muted-foreground {
+  color: #6b7280 !important; /* gray-500 = 4.6:1 on white */
+}
+.dark .text-muted-foreground {
+  color: #9ca3af !important; /* gray-400 = 4.5:1 on dark bg */
+}
+
+/* U12 — Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-pulse,
+  .animate-pulse-slow,
+  .animate-spin {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}

@@ -276,29 +276,81 @@ async def call_ai(prompt: str, provider: AIProvider, api_key: str, model: str | 
     if not model:
         model = DEFAULT_MODELS.get(provider, "")
 
-    try:
-        if provider == AIProvider.OPENAI:
-            return await _call_openai(prompt, api_key, model)
-        elif provider == AIProvider.ANTHROPIC:
-            return await _call_anthropic(prompt, api_key, model)
-        elif provider == AIProvider.GOOGLE_AI:
-            return await _call_google_ai(prompt, api_key, model)
-        elif provider == AIProvider.OLLAMA:
-            return await _call_ollama(prompt, model, endpoint_url or "http://localhost:11434")
-        elif provider == AIProvider.GROQ:
-            return await _call_groq(prompt, api_key, model)
-        elif provider == AIProvider.MISTRAL:
-            return await _call_mistral(prompt, api_key, model)
-        elif provider == AIProvider.AZURE_OPENAI:
-            return await _call_azure_openai(prompt, api_key, model, endpoint_url or "")
-        elif provider == AIProvider.AWS_BEDROCK:
-            return await _call_openai(prompt, api_key, model)  # Bedrock uses OpenAI-compatible API
-        else:
-            logger.warning(f"Unsupported provider: {provider}")
-            return hcl_code
-    except Exception as e:
-        logger.error(f"AI cleaning failed ({provider}): {e}")
-        raise
+    return await _call_ai_with_retry(prompt, provider, api_key, model, endpoint_url)
+
+
+async def _call_ai_with_retry(
+    prompt: str,
+    provider: AIProvider,
+    api_key: str,
+    model: str,
+    endpoint_url: str | None,
+    max_retries: int = 3,
+    base_delay: float = 2.0,
+) -> str:
+    """Call AI provider with exponential backoff retry on transient errors.
+
+    Retries on: 429 (rate limit), 500, 502, 503, 504, timeouts, connection errors.
+    Does NOT retry on: 400, 401, 403 (permanent errors).
+    """
+    import asyncio
+    import random
+
+    last_error: Exception | None = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            if provider == AIProvider.OPENAI:
+                return await _call_openai(prompt, api_key, model)
+            elif provider == AIProvider.ANTHROPIC:
+                return await _call_anthropic(prompt, api_key, model)
+            elif provider == AIProvider.GOOGLE_AI:
+                return await _call_google_ai(prompt, api_key, model)
+            elif provider == AIProvider.OLLAMA:
+                return await _call_ollama(prompt, model, endpoint_url or "http://localhost:11434")
+            elif provider == AIProvider.GROQ:
+                return await _call_groq(prompt, api_key, model)
+            elif provider == AIProvider.MISTRAL:
+                return await _call_mistral(prompt, api_key, model)
+            elif provider == AIProvider.AZURE_OPENAI:
+                return await _call_azure_openai(prompt, api_key, model, endpoint_url or "")
+            elif provider == AIProvider.AWS_BEDROCK:
+                return await _call_openai(prompt, api_key, model)
+            else:
+                raise ValueError(f"Unsupported provider: {provider}")
+
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            if status in (400, 401, 403, 404):
+                logger.error(f"AI call failed (non-retryable {status}): {e}")
+                raise
+            last_error = e
+            if attempt < max_retries:
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                logger.warning(f"AI call failed ({status}), retry in {delay:.1f}s ({attempt + 1}/{max_retries})")
+                await asyncio.sleep(delay)
+            else:
+                raise
+
+        except (httpx.TimeoutException, httpx.ConnectError) as e:
+            last_error = e
+            if attempt < max_retries:
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                logger.warning(f"AI timeout/connection error, retry in {delay:.1f}s ({attempt + 1}/{max_retries})")
+                await asyncio.sleep(delay)
+            else:
+                raise
+
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries:
+                delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                logger.warning(f"AI unexpected error: {e}, retry in {delay:.1f}s")
+                await asyncio.sleep(delay)
+            else:
+                raise
+
+    raise last_error or RuntimeError("AI call failed")
 
 
 async def _call_openai(prompt: str, api_key: str, model: str) -> str:

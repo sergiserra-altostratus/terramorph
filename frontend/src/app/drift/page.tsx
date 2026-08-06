@@ -19,6 +19,7 @@ import {
 import { apiClient } from "@/lib/api";
 import Terminal from "@/components/Terminal";
 import { useDriftWebSocket } from "@/lib/useDriftWebSocket";
+import { computeDiff } from "@/lib/diff";
 
 interface Prerequisites {
   ai_configured: boolean;
@@ -525,91 +526,143 @@ function DriftPageContent() {
         </div>
       )}
 
-      {/* Results — Side by side layout */}
+      {/* Results — Diff view */}
       {results?.result && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-slide-up">
-          {/* Left: Original code (input) */}
-          <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden flex flex-col">
-            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-muted/20">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Original Code</span>
-              <span className="text-[10px] text-muted-foreground">{tfContent.split("\n").length} lines</span>
-            </div>
-            <pre className="flex-1 p-4 text-xs font-mono overflow-auto max-h-[500px] bg-muted/5">
-              <code>{tfContent}</code>
-            </pre>
-          </div>
+        <DiffResults
+          originalContent={tfContent}
+          results={results}
+        />
+      )}
+    </div>
+  );
+}
 
-          {/* Right: Results + Fixed code */}
-          <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden flex flex-col">
-            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-muted/20">
-              <div className="flex items-center gap-3">
-                {results.result.drift_fixed || !results.result.drift_detected ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                )}
-                <div>
-                  <span className="text-xs font-semibold">{results.result.message}</span>
-                  {results.result.iterations_needed > 0 && (
-                    <span className="text-[10px] text-muted-foreground ml-2">
-                      ({results.result.iterations_needed} iteration(s))
-                    </span>
-                  )}
-                </div>
-              </div>
-              {/* Download button */}
-              {results.result.final_files && (
-                <button
-                  onClick={() => {
-                    const allContent = Object.entries(results.result.final_files as Record<string, string>)
-                      .map(([f, c]) => `# --- ${f} ---\n${c}`).join("\n\n");
-                    const blob = new Blob([allContent], { type: "text/plain" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a"); a.href = url; a.download = "drift-fixed.tf"; a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] px-2.5 py-1.5 text-[10px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+/** Diff results component with GitHub-style line highlighting */
+function DiffResults({ originalContent, results }: { originalContent: string; results: any }) {
+  const fixedContent = results.result.final_files
+    ? Object.entries(results.result.final_files as Record<string, string>)
+        .filter(([f]) => f !== "provider.tf" && f !== "backend.tf")
+        .map(([f, c]) => `# --- ${f} ---\n${c}`)
+        .join("\n\n")
+    : "";
+
+  const diff = computeDiff(originalContent, fixedContent);
+
+  return (
+    <div className="space-y-3 animate-slide-up">
+      {/* Result header */}
+      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {results.result.drift_fixed || !results.result.drift_detected ? (
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+          ) : (
+            <AlertCircle className="h-5 w-5 text-amber-500" />
+          )}
+          <div>
+            <span className="text-sm font-semibold">{results.result.message}</span>
+            {results.result.iterations_needed > 0 && (
+              <span className="text-xs text-muted-foreground ml-2">
+                ({results.result.iterations_needed} iteration(s))
+              </span>
+            )}
+          </div>
+        </div>
+        {results.result.final_files && (
+          <button
+            onClick={() => {
+              const allContent = Object.entries(results.result.final_files as Record<string, string>)
+                .map(([f, c]) => `# --- ${f} ---\n${c}`).join("\n\n");
+              const blob = new Blob([allContent], { type: "text/plain" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = "drift-fixed.tf"; a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-white/[0.08] px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors"
+          >
+            <Download className="h-3 w-3" />
+            Download
+          </button>
+        )}
+      </div>
+
+      {/* Drift not resolved */}
+      {results.result.drift_detected && !results.result.drift_fixed && results.result.remaining_drift && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4">
+          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1.5">Unresolved Drift</p>
+          <pre className="text-[10px] font-mono text-amber-700 dark:text-amber-400 whitespace-pre-wrap max-h-32 overflow-y-auto">{results.result.remaining_drift}</pre>
+        </div>
+      )}
+
+      {/* Side-by-side diff */}
+      {diff.hasChanges && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden">
+          {/* Left: Original */}
+          <div className="border-r border-gray-200/60 dark:border-white/[0.06] overflow-hidden flex flex-col">
+            <div className="px-4 py-2.5 border-b border-border/50 bg-red-50/30 dark:bg-red-500/[0.03]">
+              <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wider">Original</span>
+            </div>
+            <div className="flex-1 overflow-auto max-h-[500px] bg-white dark:bg-[#0d1117]">
+              {diff.left.map((line, i) => (
+                <div
+                  key={i}
+                  className={`flex text-xs font-mono leading-5 ${
+                    line.state === "removed"
+                      ? "bg-red-50/70 dark:bg-red-500/[0.07] border-l-2 border-red-400 dark:border-red-500/50"
+                      : line.state === "padding"
+                      ? "bg-gray-50/50 dark:bg-gray-800/20"
+                      : ""
+                  }`}
                 >
-                  <Download className="h-3 w-3" />
-                  Download
-                </button>
-              )}
+                  <span className="w-10 flex-shrink-0 text-right pr-2 py-px text-[10px] text-gray-400 dark:text-gray-600 select-none border-r border-gray-100 dark:border-white/[0.04]">
+                    {line.lineNumber || ""}
+                  </span>
+                  <span className={`flex-1 px-3 py-px whitespace-pre-wrap break-all ${
+                    line.state === "removed" ? "text-red-800 dark:text-red-300" : "text-gray-700 dark:text-gray-300"
+                  }`}>
+                    {line.state === "padding" ? "\u00A0" : line.text}
+                  </span>
+                </div>
+              ))}
             </div>
-
-            {/* Drift not resolved summary */}
-            {results.result.drift_detected && !results.result.drift_fixed && results.result.remaining_drift && (
-              <div className="px-4 py-3 bg-amber-50/50 dark:bg-amber-500/5 border-b border-amber-200/50 dark:border-amber-500/10">
-                <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1.5">Unresolved Drift Summary</p>
-                <pre className="text-[10px] font-mono text-amber-700 dark:text-amber-400 whitespace-pre-wrap max-h-32 overflow-y-auto">{results.result.remaining_drift}</pre>
-              </div>
-            )}
-
-            {/* Fixed Files */}
-            {results.result.final_files ? (
-              <div className="flex-1 overflow-auto max-h-[500px]">
-                {Object.entries(results.result.final_files as Record<string, string>).map(([filename, content]) => (
-                  <div key={filename}>
-                    <div className="px-4 py-1.5 bg-green-50/50 dark:bg-green-500/5 border-b border-border/30 flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-green-700 dark:text-green-400">{filename}</span>
-                      <button
-                        onClick={() => navigator.clipboard.writeText(content)}
-                        className="text-[10px] text-primary hover:underline"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                    <pre className="p-4 text-xs font-mono overflow-x-auto border-b border-border/20">
-                      <code>{content}</code>
-                    </pre>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center p-8">
-                <p className="text-sm text-muted-foreground">No corrected files available</p>
-              </div>
-            )}
           </div>
+
+          {/* Right: Fixed */}
+          <div className="overflow-hidden flex flex-col">
+            <div className="px-4 py-2.5 border-b border-border/50 bg-green-50/30 dark:bg-green-500/[0.03]">
+              <span className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider">Fixed</span>
+            </div>
+            <div className="flex-1 overflow-auto max-h-[500px] bg-white dark:bg-[#0d1117]">
+              {diff.right.map((line, i) => (
+                <div
+                  key={i}
+                  className={`flex text-xs font-mono leading-5 ${
+                    line.state === "added"
+                      ? "bg-green-50/70 dark:bg-green-500/[0.07] border-l-2 border-green-400 dark:border-green-500/50"
+                      : line.state === "padding"
+                      ? "bg-gray-50/50 dark:bg-gray-800/20"
+                      : ""
+                  }`}
+                >
+                  <span className="w-10 flex-shrink-0 text-right pr-2 py-px text-[10px] text-gray-400 dark:text-gray-600 select-none border-r border-gray-100 dark:border-white/[0.04]">
+                    {line.lineNumber || ""}
+                  </span>
+                  <span className={`flex-1 px-3 py-px whitespace-pre-wrap break-all ${
+                    line.state === "added" ? "text-green-800 dark:text-green-300" : "text-gray-700 dark:text-gray-300"
+                  }`}>
+                    {line.state === "padding" ? "\u00A0" : line.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No changes case */}
+      {!diff.hasChanges && results.result.final_files && (
+        <div className="rounded-xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-6 text-center">
+          <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
+          <p className="text-sm font-medium text-green-800 dark:text-green-300">No changes needed — code matches infrastructure.</p>
         </div>
       )}
     </div>
