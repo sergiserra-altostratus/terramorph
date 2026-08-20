@@ -193,14 +193,11 @@ function AutoImportContent() {
   return (
     <div className="space-y-5 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-sm">
-          <Upload className="h-4 w-4 text-white" />
-        </div>
+      <div className="flex items-center justify-between pb-3 border-b border-border">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Auto Import</h1>
-          <p className="text-sm text-muted-foreground">
-            Upload your Terraform files and import existing infrastructure into state automatically.
+          <h1 className="text-lg font-medium">Auto Import</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Upload your Terraform files and import existing infrastructure into state.
           </p>
         </div>
       </div>
@@ -216,7 +213,7 @@ function AutoImportContent() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all ${
+            className={`rounded-md border-2 border-dashed p-8 text-center cursor-pointer transition-all ${
               dragOver
                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10"
                 : "border-gray-300 dark:border-white/10 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-500/5"
@@ -238,7 +235,7 @@ function AutoImportContent() {
 
           {/* File list */}
           {Object.keys(files).length > 0 && (
-            <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden">
+            <div className="rounded-md border border-border bg-background overflow-hidden">
               <div className="px-4 py-2.5 border-b border-border/50 bg-muted/20">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Uploaded Files ({Object.keys(files).length})
@@ -278,14 +275,14 @@ function AutoImportContent() {
             <button
               onClick={startImport}
               disabled={running || !hasBackendTf || Object.keys(files).length < 2}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-emerald-500 to-emerald-600 text-white text-sm font-medium shadow-sm hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:pointer-events-none"
             >
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               {running ? "Importing..." : "Start Auto Import"}
             </button>
             {running && (
               <button onClick={stopImport} disabled={cancelling}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-red-500 to-red-600 text-white text-sm font-medium shadow-sm hover:from-red-400 hover:to-red-500 active:scale-[0.98] transition-all disabled:opacity-50">
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-red-400/50 text-red-400 text-sm font-medium hover:bg-red-400/10 transition-colors disabled:opacity-40">
                 <Square className="h-3.5 w-3.5 fill-current" />
                 {cancelling ? "Stopping..." : "Stop"}
               </button>
@@ -304,8 +301,8 @@ function AutoImportContent() {
                 const isDone = i < phaseIndex || currentPhase === "done";
                 return (
                   <div key={phase.key} className="flex items-center">
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${isActive ? "bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" : isDone ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" : "bg-muted/50 text-muted-foreground"}`}>
-                      {isActive && running && <Circle className="h-1.5 w-1.5 fill-emerald-500 animate-pulse" />}
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-medium transition-all ${isActive ? "bg-muted text-foreground" : isDone ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400" : "bg-muted/50 text-muted-foreground"}`}>
+                      {isActive && running && <Circle className="h-1.5 w-1.5 fill-emerald-400 animate-pulse" />}
                       {isDone && <CheckCircle2 className="h-2.5 w-2.5" />}
                       {phase.label}
                     </div>
@@ -333,7 +330,7 @@ function AutoImportContent() {
 
             {/* Drift decision modal */}
             {driftDecision && !isComplete && (
-              <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4 space-y-3 animate-slide-up">
+              <div className="rounded-md border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4 space-y-3 animate-slide-up">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
                   <div>
@@ -369,7 +366,7 @@ function AutoImportContent() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-4">
+        <div className="rounded-md border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-4">
           <div className="flex items-start gap-3">
             <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div>
@@ -382,7 +379,7 @@ function AutoImportContent() {
 
       {/* Results */}
       {results?.result && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 animate-slide-up">
+        <div className="rounded-md border border-border bg-background p-5 animate-slide-up">
           <div className="flex items-center gap-3 mb-4">
             {results.result.drift === false ? (
               <CheckCircle2 className="h-5 w-5 text-green-500" />

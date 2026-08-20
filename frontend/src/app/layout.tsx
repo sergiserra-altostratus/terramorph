@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
 import { AppShell } from "@/components/AppShell";
 import { ToastProvider } from "@/components/Toast";
+import { LayoutShell } from "@/components/layout/LayoutShell";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} antialiased bg-[#fafafa] dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100 min-h-screen`}
+        className={`${inter.className} antialiased min-h-screen`}
       >
         <ThemeProvider
           attribute="class"
@@ -40,15 +39,9 @@ export default function RootLayout({
         >
           <AppShell>
             <ToastProvider>
-              <div className="flex h-screen overflow-hidden">
-                <Sidebar />
-                <div className="flex flex-1 flex-col overflow-hidden">
-                  <Header />
-                  <main className="flex-1 overflow-y-auto px-6 py-6 lg:px-8 lg:py-8">
-                    {children}
-                  </main>
-                </div>
-              </div>
+              <LayoutShell>
+                {children}
+              </LayoutShell>
             </ToastProvider>
           </AppShell>
         </ThemeProvider>

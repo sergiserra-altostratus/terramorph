@@ -87,7 +87,7 @@ export default function GeneratePage() {
     <Suspense fallback={
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
             <Code className="h-4 w-4 text-white" />
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function GeneratePage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
           </div>
         </div>
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-10 text-center">
+        <div className="rounded-md border border-border bg-background p-10 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
         </div>
       </div>
@@ -119,7 +119,7 @@ function GenerationHistoryPanel() {
   if (history.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 mt-4">
+    <div className="rounded-md border border-border bg-background p-5 mt-4">
       <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
         Previous Generations
       </h4>
@@ -224,7 +224,7 @@ function GeneratePageContent() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
             <Code className="h-4 w-4 text-white" />
           </div>
           <div>
@@ -235,7 +235,7 @@ function GeneratePageContent() {
           </div>
         </div>
         {/* Empty state */}
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-12 text-center">
+        <div className="rounded-md border border-border bg-background p-12 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-white/[0.04] mb-4">
             <Code className="h-7 w-7 text-gray-300 dark:text-gray-600" />
           </div>
@@ -257,7 +257,7 @@ function GeneratePageContent() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
           <Code className="h-4 w-4 text-white" />
         </div>
         <div>
@@ -269,7 +269,7 @@ function GeneratePageContent() {
       </div>
 
       {/* Options */}
-      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5">
+      <div className="rounded-md border border-border bg-background p-6 space-y-5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
           <Database className="h-3.5 w-3.5" />
           Generation Options
@@ -280,7 +280,7 @@ function GeneratePageContent() {
           <select
             value={outputFormat}
             onChange={(e) => setOutputFormat(e.target.value as "single_file" | "per_resource_type")}
-            className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+            className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
             disabled={loading}
           >
             <option value="per_resource_type">One file per resource type</option>
@@ -293,7 +293,7 @@ function GeneratePageContent() {
           <select
             value={generationStyle}
             onChange={(e) => setGenerationStyle(e.target.value as "flat" | "module")}
-            className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+            className="w-full max-w-xs rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
             disabled={loading}
           >
             <option value="flat">Flat Resources (resource blocks)</option>
@@ -329,7 +329,7 @@ function GeneratePageContent() {
               aria-label="Toggle AI cleaning"
               aria-pressed={aiClean}
             >
-              <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200 ${
                 aiClean && aiConfigured ? "translate-x-5" : "translate-x-0"
               }`} />
             </button>
@@ -355,7 +355,7 @@ function GeneratePageContent() {
               <input
                 type="text" value={stateBucket} onChange={(e) => setStateBucket(e.target.value)}
                 placeholder="my-terraform-state-bucket"
-                className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+                className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
                 disabled={loading}
               />
             </div>
@@ -364,7 +364,7 @@ function GeneratePageContent() {
               <input
                 type="text" value={statePrefix} onChange={(e) => setStatePrefix(e.target.value)}
                 placeholder="terraform/state/prod"
-                className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+                className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
                 disabled={loading}
               />
             </div>
@@ -373,7 +373,7 @@ function GeneratePageContent() {
 
         <button
           onClick={generate} disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-foreground text-background text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
         >
           {loading ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {loading ? "Generating..." : "Generate Terraform"}
@@ -381,13 +381,13 @@ function GeneratePageContent() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-200/60 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-4 animate-slide-up">
+        <div className="rounded-md border border-rose-200/60 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-4 animate-slide-up">
           <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
         </div>
       )}
 
       {loading && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-10 text-center animate-slide-up">
+        <div className="rounded-md border border-border bg-background p-10 text-center animate-slide-up">
           <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent mb-4" />
           <p className="text-sm text-gray-500 dark:text-gray-400">Generating Terraform code...</p>
         </div>
@@ -423,7 +423,7 @@ function GeneratePageContent() {
               </div>
               <a
                 href={apiClient.getDownloadUrl(jobId!)}
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-150"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3.5 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/[0.05] hover:border-gray-300 dark:hover:border-white/[0.12] transition-all duration-150"
               >
                 <Download className="h-4 w-4" />
               Download ZIP
@@ -433,7 +433,7 @@ function GeneratePageContent() {
 
           {/* AI Diff Preview */}
           {result.ai_cleaned && result.ai_diff && result.ai_diff.length > 0 && (
-            <div className="rounded-xl border border-violet-200 dark:border-violet-500/20 bg-violet-50/50 dark:bg-violet-500/5 p-4 animate-slide-up">
+            <div className="rounded-md border border-violet-200 dark:border-violet-500/20 bg-violet-50/50 dark:bg-violet-500/5 p-4 animate-slide-up">
               <div className="flex items-center gap-2 mb-3">
                 <BrainCircuit className="h-4 w-4 text-violet-500" />
                 <h4 className="text-xs font-semibold text-violet-800 dark:text-violet-300">
@@ -464,7 +464,7 @@ function GeneratePageContent() {
 
           <div className="grid grid-cols-12 gap-4 h-[calc(100vh-520px)] animate-slide-up">
             {/* File List */}
-            <div className="col-span-3 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-y-auto">
+            <div className="col-span-3 rounded-md border border-border bg-background overflow-y-auto">
               <div className="p-3 border-b border-gray-100 dark:border-white/[0.04]">
                 <h3 className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Files</h3>
               </div>
@@ -487,7 +487,7 @@ function GeneratePageContent() {
             </div>
 
             {/* Code Preview — premium IDE style */}
-            <div className="col-span-9 rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-[#111111] overflow-hidden shadow-sm flex flex-col">
+            <div className="col-span-9 rounded-md border border-border bg-white dark:bg-[#111111] overflow-hidden flex flex-col">
               {/* Code header — file tab style */}
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
                 <div className="flex items-center gap-2">

@@ -17,7 +17,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
 /** Skeleton for a card layout */
 export function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 space-y-3">
+    <div className="rounded-md border border-border bg-background p-5 space-y-3">
       <Skeleton className="h-4 w-1/3" />
       <Skeleton className="h-3 w-full" />
       <Skeleton className="h-3 w-4/5" />
@@ -29,7 +29,7 @@ export function SkeletonCard() {
 /** Skeleton for a code block */
 export function SkeletonCode() {
   return (
-    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden">
+    <div className="rounded-md border border-border bg-background overflow-hidden">
       <div className="px-4 py-2.5 border-b border-border/50 bg-muted/20">
         <Skeleton className="h-3 w-24" />
       </div>
@@ -48,7 +48,7 @@ export function SkeletonCode() {
 /** Skeleton for the terminal */
 export function SkeletonTerminal() {
   return (
-    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden">
+    <div className="rounded-md border border-border overflow-hidden">
       <div className="px-4 py-2 bg-[#161b22] border-b border-gray-700/50">
         <Skeleton className="h-3 w-20 bg-gray-700" />
       </div>
@@ -67,7 +67,7 @@ export function SkeletonPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-3">
-        <Skeleton className="h-9 w-9 rounded-xl" />
+        <Skeleton className="h-9 w-9 rounded-md" />
         <div className="space-y-1.5">
           <Skeleton className="h-5 w-48" />
           <Skeleton className="h-3 w-72" />

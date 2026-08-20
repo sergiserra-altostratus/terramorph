@@ -34,19 +34,19 @@ const config: Config = {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
+      },
+      fontFamily: {
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        mono: ["'MesloLGS NF'", "JetBrains Mono", "SF Mono", "Fira Code", "monospace"],
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "8px",
+        md: "6px",
+        sm: "4px",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [],
 };
 
 export default config;

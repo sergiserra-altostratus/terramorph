@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import {
   LayoutDashboard,
   Search,
@@ -9,6 +10,8 @@ import {
   Settings,
   RefreshCw,
   Upload,
+  Network,
+  X,
 } from "lucide-react";
 
 const navigation = [
@@ -17,71 +20,91 @@ const navigation = [
   { name: "Generate", href: "/generate", icon: Code },
   { name: "Auto Import", href: "/auto-import", icon: Upload },
   { name: "Drift Fix", href: "/drift", icon: RefreshCw },
+  { name: "State Graph", href: "/state-viz", icon: Network },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (mobileOpen && onMobileClose) onMobileClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
 
-  return (
-    <aside className="w-[260px] h-screen flex flex-col border-r border-gray-200/60 dark:border-white/[0.10] bg-white dark:bg-[#0a0a0a]">
-      {/* Logo area */}
-      <div className="px-5 py-5 flex items-center gap-2.5">
-        <img src="/logo.png" alt="Terramorph" className="w-7 h-7 rounded-lg" />
-        <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
-          Terramorph
-        </span>
+  const content = (
+    <>
+      {/* Logo */}
+      <div className="px-4 py-4 flex items-center justify-between border-b border-border">
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="Terramorph" className="w-6 h-6 rounded" />
+          <span className="text-sm font-medium tracking-tight">Terramorph</span>
+        </div>
+        {onMobileClose && (
+          <button onClick={onMobileClose} className="lg:hidden p-1 rounded-md hover:bg-muted text-muted-foreground" aria-label="Close menu">
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
+      {/* Nav */}
+      <nav className="flex-1 px-2 py-3 space-y-0.5" aria-label="Main navigation">
         {navigation.map((item) => {
           const active = isActive(item.href);
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+              aria-current={active ? "page" : undefined}
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-colors ${
                 active
-                  ? "bg-gray-100 dark:bg-white/[0.06] text-gray-900 dark:text-white"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                  ? "text-foreground bg-muted font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              <item.icon
-                className={`w-4 h-4 ${
-                  active
-                    ? "text-indigo-500"
-                    : "text-gray-400 dark:text-gray-500"
-                }`}
-              />
+              <item.icon className={`w-4 h-4 ${active ? "text-emerald-500" : ""}`} />
               {item.name}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom section */}
-      <div className="px-3 py-4 border-t border-gray-100 dark:border-white/[0.04]">
-        <div className="flex items-center gap-2.5 px-3 py-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 flex items-center justify-center">
-            <span className="text-[10px] font-medium text-white">TM</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-              Self-hosted
-            </p>
-            <p className="text-[11px] text-gray-400">v1.0.0</p>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse-slow" aria-hidden="true" />
-          </div>
+      {/* Footer */}
+      <div className="px-3 py-3 border-t border-border">
+        <div className="flex items-center gap-2 px-2 py-1">
+          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="text-xs text-muted-foreground">Self-hosted · v1.0</span>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop */}
+      <aside className="hidden lg:flex w-56 h-screen flex-col border-r border-border bg-background">
+        {content}
+      </aside>
+
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onMobileClose} aria-hidden="true" />
+          <aside className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-background border-r border-border shadow-xl lg:hidden animate-slide-in-left">
+            {content}
+          </aside>
+        </>
+      )}
+    </>
   );
 }

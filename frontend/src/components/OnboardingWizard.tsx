@@ -52,7 +52,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
       subtitle: "Let's get you set up in a few quick steps",
       content: (
         <div className="space-y-4 text-center py-4">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg">
+          <div className="mx-auto w-16 h-16 rounded-md bg-muted border border-border flex items-center justify-center">
             <Sparkles className="h-8 w-8 text-white" />
           </div>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto">
@@ -84,7 +84,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
       subtitle: "At least one provider is required to start discovering resources",
       content: (
         <div className="space-y-4 py-2">
-          <div className="rounded-xl border border-border p-4 flex items-center gap-4">
+          <div className="rounded-md border border-border p-4 flex items-center gap-4">
             <GCPLogo className="h-8 w-8 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Google Cloud Platform</p>
@@ -104,7 +104,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
             </div>
           </div>
 
-          <div className="rounded-xl border border-border p-4 flex items-center gap-4">
+          <div className="rounded-md border border-border p-4 flex items-center gap-4">
             <AWSLogo className="h-8 w-8 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">Amazon Web Services</p>
@@ -143,7 +143,7 @@ export function OnboardingWizard({ onComplete, onDismiss }: OnboardingWizardProp
       subtitle: "Configure an AI provider to automatically clean generated Terraform code",
       content: (
         <div className="space-y-4 py-2">
-          <div className="rounded-xl border border-border p-4 flex items-center gap-4">
+          <div className="rounded-md border border-border p-4 flex items-center gap-4">
             <BrainCircuit className="h-8 w-8 text-violet-500 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium">AI Provider</p>

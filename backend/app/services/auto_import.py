@@ -248,12 +248,14 @@ async def _run_terraform_streaming(
     stderr_lines: list[str] = []
 
     try:
+        from app.services.drift import _terraform_env
         process = await asyncio.create_subprocess_exec(
             "terraform",
             *args,
             cwd=cwd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=_terraform_env(),
         )
 
         async def read_stream(stream: asyncio.StreamReader, stream_name: str, buffer: list[str]):

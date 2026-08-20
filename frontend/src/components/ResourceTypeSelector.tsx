@@ -94,7 +94,7 @@ export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: Reso
   return (
     <div className="space-y-4">
       {/* Global Toolbar */}
-      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 backdrop-blur-sm px-4 py-3">
+      <div className="flex items-center justify-between rounded-md border border-border bg-muted/30  px-4 py-3">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold">Resource Types</h3>
           <span className="inline-flex items-center rounded-full bg-primary/10 border border-primary/30 px-2.5 py-0.5 text-xs font-medium text-primary">
@@ -122,14 +122,14 @@ export function ResourceTypeSelector({ selectedTypes, onChange, disabled }: Reso
           const panelId = `cat-${category.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase()}`;
 
           return (
-            <div key={category} className="relative overflow-hidden rounded-xl border border-border bg-card/50 backdrop-blur-sm transition-all duration-200 ease-in-out hover:border-primary/20">
+            <div key={category} className="relative overflow-hidden rounded-md border border-border bg-card/50  transition-all duration-200 ease-in-out hover:border-primary/20">
               {/* Accent strip */}
-              <div className={`absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b ${meta.accent}`} />
+              <div className={`absolute left-0 top-0 bottom-0 w-[2px] ${meta.accentBg}`} />
 
               {/* Category Header */}
               <div
                 role="button" tabIndex={0} aria-expanded={isExpanded} aria-controls={panelId}
-                className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${isExpanded ? "rounded-t-xl" : "rounded-xl"}`}
+                className={`flex items-center justify-between px-4 py-3 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${isExpanded ? "rounded-t-xl" : "rounded-md"}`}
                 onClick={() => toggleCategory(category)}
                 onKeyDown={(e) => handleCategoryKeyDown(e, category)}
               >

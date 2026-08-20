@@ -287,7 +287,7 @@ export default function DiscoverPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
           <Search className="h-4 w-4 text-white" />
         </div>
         <div>
@@ -302,7 +302,7 @@ export default function DiscoverPage() {
 
       {/* Recent Scopes */}
       {recentScopes.length > 0 && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 animate-slide-up">
+        <div className="rounded-md border border-border bg-background p-5 animate-slide-up">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 mb-3">
             <Clock className="h-3.5 w-3.5" />
             Recent Scopes
@@ -324,7 +324,7 @@ export default function DiscoverPage() {
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); deleteRecentScope(scope.type, scope.id); }}
-                  className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-white text-[8px] shadow-sm hover:scale-110 transition-transform"
+                  className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-white text-[8px] hover:scale-110 transition-transform"
                   aria-label="Remove from recents"
                 >
                   <X className="h-2.5 w-2.5" />
@@ -336,7 +336,7 @@ export default function DiscoverPage() {
       )}
 
       {/* Cloud Provider Selector */}
-      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5">
+      <div className="rounded-md border border-border bg-background p-5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
           Cloud Provider
         </h3>
@@ -344,10 +344,10 @@ export default function DiscoverPage() {
           <button
             onClick={() => setCloudProvider("gcp")}
             disabled={isRunning}
-            className={`flex-1 flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-150 ${
+            className={`flex-1 flex items-center gap-3 rounded-md border px-4 py-3 transition-all duration-150 ${
               cloudProvider === "gcp"
                 ? "ring-2 ring-blue-500/40 border-blue-400/60 dark:border-blue-400/30 bg-blue-50/50 dark:bg-blue-500/[0.06]"
-                : "border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/[0.1]"
+                : "border-border bg-background hover:border-gray-300 dark:hover:border-white/[0.1]"
             }`}
           >
             <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
@@ -361,10 +361,10 @@ export default function DiscoverPage() {
           <button
             onClick={() => setCloudProvider("aws")}
             disabled={isRunning}
-            className={`flex-1 flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-150 ${
+            className={`flex-1 flex items-center gap-3 rounded-md border px-4 py-3 transition-all duration-150 ${
               cloudProvider === "aws"
                 ? "ring-2 ring-orange-500/40 border-orange-400/60 dark:border-orange-400/30 bg-orange-50/50 dark:bg-orange-500/[0.06]"
-                : "border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/[0.1]"
+                : "border-border bg-background hover:border-gray-300 dark:hover:border-white/[0.1]"
             }`}
           >
             <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
@@ -388,7 +388,7 @@ export default function DiscoverPage() {
       </div>
 
       {/* Scope Selection */}
-      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5">
+      <div className="rounded-md border border-border bg-background p-6 space-y-5">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           Discovery Scope
         </h3>
@@ -441,7 +441,7 @@ export default function DiscoverPage() {
                 <select
                   value={scopeType}
                   onChange={(e) => setScopeType(e.target.value as ScopeType)}
-                  className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+                  className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
                   disabled={isRunning}
                 >
                   <option value="project">Project</option>
@@ -458,7 +458,7 @@ export default function DiscoverPage() {
                   value={scopeId}
                   onChange={(e) => setScopeId(e.target.value)}
                   placeholder={scopeType === "project" ? "my-gcp-project" : "123456789"}
-                  className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-white dark:bg-white/[0.03] px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
+                  className="w-full rounded-lg border border-gray-200 dark:border-white/[0.08] bg-background px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 outline-none transition-all"
                   disabled={isRunning}
                 />
               </div>
@@ -528,7 +528,7 @@ export default function DiscoverPage() {
         <button
           onClick={startDiscovery}
           disabled={isRunning || (cloudProvider === "gcp" && selectedTypes.length === 0) || (cloudProvider === "aws" && (!awsConfigured || awsResourceTypes.length === 0))}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-foreground text-background text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
         >
           {isRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {isRunning ? "Discovering..." : "Start Discovery"}
@@ -537,7 +537,7 @@ export default function DiscoverPage() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-rose-200/60 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-4 flex items-center gap-3 animate-slide-up">
+        <div className="rounded-md border border-rose-200/60 dark:border-rose-500/20 bg-rose-50 dark:bg-rose-500/5 p-4 flex items-center gap-3 animate-slide-up">
           <AlertCircle className="h-4 w-4 text-rose-500 flex-shrink-0" />
           <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
         </div>
@@ -545,7 +545,7 @@ export default function DiscoverPage() {
 
       {/* Progress — refined */}
       {isRunning && status && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 animate-slide-up">
+        <div className="rounded-md border border-border bg-background p-6 animate-slide-up">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
             <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -560,7 +560,7 @@ export default function DiscoverPage() {
             {/* Progress bar */}
             <div className="h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.04] overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 ease-out"
+                className="h-full rounded-full bg-emerald-500 transition-all duration-500 ease-out"
                 style={{ width: `${status.progress.total > 0 ? (status.progress.completed / status.progress.total) * 100 : 0}%` }}
               />
             </div>
@@ -573,7 +573,7 @@ export default function DiscoverPage() {
 
       {/* Results */}
       {result && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-5 animate-slide-up">
+        <div className="rounded-md border border-border bg-background p-6 space-y-5 animate-slide-up">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-500/10">
               <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -589,7 +589,7 @@ export default function DiscoverPage() {
             {Object.entries(result.summary)
               .filter(([, count]) => (count as number) > 0)
               .map(([type, count]) => (
-              <div key={type} className="rounded-lg border border-gray-200/60 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.02] p-2.5 text-center transition-all duration-150 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:shadow-sm">
+              <div key={type} className="rounded-lg border border-border bg-gray-50 dark:bg-white/[0.02] p-2.5 text-center transition-all duration-150 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:shadow-sm">
                 <p className="text-xl font-semibold tracking-tight text-indigo-600 dark:text-indigo-400">{count as number}</p>
                 <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{type.replace(/_/g, " ")}</p>
               </div>
@@ -597,7 +597,7 @@ export default function DiscoverPage() {
           </div>
 
           {/* Resource Table */}
-          <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden">
+          <div className="rounded-md border border-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/[0.04] bg-gray-50/50 dark:bg-white/[0.02]">
@@ -632,7 +632,7 @@ export default function DiscoverPage() {
           {/* Generate Button */}
           <a
             href={`/generate?job_id=${jobId}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-foreground text-background text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-150"
           >
             <Sparkles className="h-4 w-4" />
             Generate Terraform Code
@@ -643,7 +643,7 @@ export default function DiscoverPage() {
 
       {/* Bulk Export Results */}
       {bulkResult && (
-        <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 space-y-4 animate-slide-up">
+        <div className="rounded-md border border-border bg-background p-6 space-y-4 animate-slide-up">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
             <div>

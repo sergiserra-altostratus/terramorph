@@ -82,7 +82,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg backdrop-blur-sm transition-all duration-200 motion-reduce:transition-none ${styles[toast.type]} ${
+      className={`flex items-start gap-3 px-4 py-3 rounded-md border shadow-lg backdrop-blur-sm transition-all duration-200 motion-reduce:transition-none ${styles[toast.type]} ${
         exiting ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0 animate-slide-up"
       }`}
       role="alert"

@@ -30,6 +30,25 @@ from app.services.ai_settings import get_active_config, is_ai_configured
 
 logger = get_logger("drift")
 
+# Terraform plugin cache directory — persists provider binaries between jobs
+# Reduces terraform init from ~30-60s to ~2-3s on subsequent runs
+PLUGIN_CACHE_DIR = os.environ.get("TF_PLUGIN_CACHE_DIR", "/app/data/.terraform-plugin-cache")
+
+# Ensure cache directory exists (safe for environments where /app doesn't exist)
+try:
+    os.makedirs(PLUGIN_CACHE_DIR, exist_ok=True)
+except OSError:
+    # Fallback to temp dir if configured path is not writable
+    PLUGIN_CACHE_DIR = os.path.join(tempfile.gettempdir(), "terramorph-plugin-cache")
+    os.makedirs(PLUGIN_CACHE_DIR, exist_ok=True)
+
+# Environment for terraform subprocesses (inherits current env + adds cache)
+def _terraform_env() -> dict[str, str]:
+    """Get environment variables for terraform subprocess with plugin cache."""
+    env = os.environ.copy()
+    env["TF_PLUGIN_CACHE_DIR"] = PLUGIN_CACHE_DIR
+    return env
+
 # In-memory drift job storage
 _drift_jobs: dict[str, dict[str, Any]] = {}
 
@@ -335,6 +354,7 @@ def _run_terraform(args: list[str], cwd: str, timeout: int = 120) -> tuple[str, 
         capture_output=True,
         text=True,
         timeout=timeout,
+        env=_terraform_env(),
     )
     # Strip ANSI escape codes
     ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
@@ -365,6 +385,7 @@ async def _run_terraform_streaming(
             cwd=cwd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=_terraform_env(),
         )
 
         async def read_stream(stream: asyncio.StreamReader, stream_name: str, buffer: list[str]):

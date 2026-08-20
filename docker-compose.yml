@@ -14,6 +14,7 @@ services:
       - TERRAMORPH_LOG_LEVEL=${TERRAMORPH_LOG_LEVEL:-debug}
       - TERRAMORPH_AUTH_DISABLED=${TERRAMORPH_AUTH_DISABLED:-true}
       - CORS_ORIGINS=http://localhost:${FRONTEND_PORT:-3000}
+      - TF_PLUGIN_CACHE_DIR=/app/data/.terraform-plugin-cache
     volumes:
       - ${GOOGLE_APPLICATION_CREDENTIALS:-~/.config/gcloud/application_default_credentials.json}:/credentials/adc.json:ro
       - ./backend/app:/app/app

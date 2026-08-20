@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -10,10 +10,17 @@ const pageTitles: Record<string, string> = {
   "/": "Dashboard",
   "/discover": "Discover",
   "/generate": "Generate",
+  "/auto-import": "Auto Import",
+  "/drift": "Drift Fix",
+  "/state-viz": "State Graph",
   "/settings": "Settings",
 };
 
-export function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+}
+
+export function Header({ onMenuToggle }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const [connected, setConnected] = useState<boolean | null>(null);
   const pathname = usePathname();
@@ -21,51 +28,37 @@ export function Header() {
   const pageTitle = pageTitles[pathname] || "Terramorph";
 
   useEffect(() => {
-    apiClient
-      .getHealth()
-      .then(() => setConnected(true))
-      .catch(() => setConnected(false));
+    apiClient.getHealth().then(() => setConnected(true)).catch(() => setConnected(false));
   }, []);
 
   return (
-    <header className="h-14 flex items-center justify-between px-6 lg:px-8 border-b border-gray-200/60 dark:border-white/[0.10] bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl sticky top-0 z-40">
-      {/* Breadcrumb / Page title */}
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-medium text-gray-900 dark:text-white">
-          {pageTitle}
-        </h2>
+    <header className="h-12 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-background sticky top-0 z-30">
+      <div className="flex items-center gap-3">
+        {onMenuToggle && (
+          <button onClick={onMenuToggle} className="lg:hidden p-1.5 -ml-1 rounded-md hover:bg-muted text-muted-foreground" aria-label="Open menu">
+            <Menu className="h-4 w-4" />
+          </button>
+        )}
+        <h2 className="text-sm font-medium">{pageTitle}</h2>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2">
-        {/* Connection status */}
-        <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5">
-          <div
-            className={`h-2 w-2 rounded-full transition-colors ${
-              connected === true
-                ? "bg-emerald-500"
-                : connected === false
-                ? "bg-rose-500"
-                : "bg-amber-500 animate-pulse-slow"
-            }`}
-          />
-          <span className="text-[11px] text-gray-500 dark:text-gray-400">
-            {connected === true
-              ? "Connected"
-              : connected === false
-              ? "Disconnected"
-              : "Checking..."}
+      <div className="flex items-center gap-3">
+        {/* Status */}
+        <div className="flex items-center gap-1.5">
+          <div className={`w-1.5 h-1.5 rounded-full ${connected === true ? "bg-emerald-500" : connected === false ? "bg-red-400" : "bg-zinc-400"}`} />
+          <span className="text-[11px] text-muted-foreground hidden sm:inline">
+            {connected === true ? "Connected" : connected === false ? "Disconnected" : "..."}
           </span>
         </div>
 
-        {/* Theme toggle — refined */}
+        {/* Theme */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all duration-150"
+          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Toggle theme"
         >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all duration-200 dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all duration-200 dark:rotate-0 dark:scale-100" />
+          <Sun className="h-3.5 w-3.5 block dark:hidden" />
+          <Moon className="h-3.5 w-3.5 hidden dark:block" />
         </button>
       </div>
     </header>

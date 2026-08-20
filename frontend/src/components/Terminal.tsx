@@ -157,7 +157,7 @@ export default function Terminal({
 
   return (
     <div
-      className={`rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden transition-all duration-300 ${className}`}
+      className={`rounded-md border border-border overflow-hidden transition-all duration-300 ${className}`}
       role="log"
       aria-label="Terraform command output terminal"
       aria-live="polite"

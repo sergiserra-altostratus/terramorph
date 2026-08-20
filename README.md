@@ -187,11 +187,10 @@ cd cli && cargo build
 
 Upcoming features and improvements planned for future releases:
 
-- **Terraform plugin cache** — Shared provider binary cache to speed up `terraform init` (currently ~30-60s → ~2-3s)
 - **Infrastructure from form** — Create new infrastructure directly from a visual form in the web UI, generating Terraform code without needing pre-existing resources (forward Terraform)
 - **Multi-tenant SaaS mode** — OAuth-based authentication, team workspaces, and hosted deployment option
-- **Terraform state visualization** — Visual graph of resource dependencies
 - **Cost estimation** — Estimate infrastructure costs before applying changes
+- **Pipeline state persistence** — Save pipeline progress to SQLite for resume after restart
 
 ## License
 

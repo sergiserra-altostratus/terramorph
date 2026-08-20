@@ -2,377 +2,194 @@
 
 import { useEffect, useState } from "react";
 import {
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Search,
+  Code,
+  Upload,
+  RefreshCw,
+  Network,
   Server,
   Globe,
   Database,
   HardDrive,
   Container,
-  CheckCircle2,
-  XCircle,
   Shield,
-  Radio,
   Zap,
-  MessageSquare,
-  UserCog,
-  Waypoints,
-  MemoryStick,
-  ArrowRight,
-  Lock,
-  Package,
   Key,
-  Network,
-  Timer,
-  ChevronRight,
-  BrainCircuit,
 } from "lucide-react";
+import Link from "next/link";
 import { apiClient, type HealthResponse } from "@/lib/api";
-import { GCPLogo, AWSLogo } from "@/components/CloudProviderLogos";
 
-const resourceCards = [
-  { name: "Compute Engine", icon: Server, color: "from-blue-500 to-blue-600", description: "VMs and instances" },
-  { name: "VPC Networks", icon: Globe, color: "from-cyan-500 to-cyan-600", description: "Networks & subnets" },
-  { name: "Cloud Storage", icon: HardDrive, color: "from-green-500 to-green-600", description: "GCS buckets" },
-  { name: "Cloud SQL", icon: Database, color: "from-orange-500 to-orange-600", description: "Database instances" },
-  { name: "GKE Clusters", icon: Container, color: "from-purple-500 to-purple-600", description: "Kubernetes" },
-  { name: "Firewall Rules", icon: Shield, color: "from-red-500 to-red-600", description: "Network security" },
-  { name: "Load Balancers", icon: Waypoints, color: "from-indigo-500 to-indigo-600", description: "Traffic routing" },
-  { name: "Cloud Run", icon: Zap, color: "from-teal-500 to-teal-600", description: "Serverless containers" },
-  { name: "Cloud Functions", icon: Radio, color: "from-yellow-500 to-yellow-600", description: "FaaS" },
-  { name: "Pub/Sub", icon: MessageSquare, color: "from-pink-500 to-pink-600", description: "Messaging" },
-  { name: "Service Accounts", icon: UserCog, color: "from-slate-500 to-slate-600", description: "IAM identities" },
-  { name: "Cloud DNS", icon: Globe, color: "from-emerald-500 to-emerald-600", description: "DNS zones" },
-  { name: "Memorystore", icon: MemoryStick, color: "from-rose-500 to-rose-600", description: "Redis instances" },
-  { name: "IAM & Roles", icon: Shield, color: "from-amber-500 to-amber-600", description: "Bindings & custom roles" },
-  { name: "BigQuery", icon: Database, color: "from-blue-600 to-indigo-600", description: "Data warehouse" },
-  { name: "Secret Manager", icon: Lock, color: "from-gray-600 to-gray-700", description: "Secrets metadata" },
-  { name: "Artifact Registry", icon: Package, color: "from-violet-500 to-violet-600", description: "Container images" },
-  { name: "Cloud KMS", icon: Key, color: "from-zinc-500 to-zinc-600", description: "Encryption keys" },
-  { name: "Cloud NAT", icon: Network, color: "from-sky-500 to-sky-600", description: "NAT gateways" },
-  { name: "Cloud Scheduler", icon: Timer, color: "from-lime-600 to-lime-700", description: "Cron jobs" },
-];
-
-const awsResourceCards = [
-  { name: "EC2 Instances", icon: Server, color: "from-orange-500 to-orange-600", description: "Virtual machines" },
-  { name: "VPCs & Subnets", icon: Globe, color: "from-blue-500 to-blue-600", description: "Networking" },
-  { name: "Security Groups", icon: Shield, color: "from-red-500 to-red-600", description: "Firewall rules" },
-  { name: "S3 Buckets", icon: HardDrive, color: "from-green-500 to-green-600", description: "Object storage" },
-  { name: "RDS Instances", icon: Database, color: "from-blue-600 to-indigo-600", description: "Managed databases" },
-  { name: "EKS Clusters", icon: Container, color: "from-purple-500 to-purple-600", description: "Kubernetes" },
-  { name: "Lambda Functions", icon: Zap, color: "from-amber-500 to-amber-600", description: "Serverless compute" },
-  { name: "IAM Roles", icon: UserCog, color: "from-slate-500 to-slate-600", description: "Identity & access" },
-  { name: "Route53 Zones", icon: Globe, color: "from-violet-500 to-violet-600", description: "DNS management" },
-  { name: "CloudFront", icon: Network, color: "from-teal-500 to-teal-600", description: "CDN distributions" },
-  { name: "Load Balancers", icon: Waypoints, color: "from-cyan-500 to-cyan-600", description: "ALB/NLB" },
-];
-
-interface AIInfo {
-  configured: boolean;
-  active: string | null;
-  count: number;
+interface StatusInfo {
+  gcp: boolean;
+  ai: boolean;
+  aiProvider: string | null;
 }
 
-function RecentActivity() {
+const gcpResources = [
+  { name: "Compute Engine", icon: Server },
+  { name: "VPC Networks", icon: Globe },
+  { name: "Cloud Storage", icon: HardDrive },
+  { name: "Cloud SQL", icon: Database },
+  { name: "GKE", icon: Container },
+  { name: "Firewall Rules", icon: Shield },
+  { name: "Cloud Run", icon: Zap },
+  { name: "IAM", icon: Key },
+];
+
+const awsResources = [
+  { name: "EC2", icon: Server },
+  { name: "VPC", icon: Globe },
+  { name: "S3", icon: HardDrive },
+  { name: "RDS", icon: Database },
+  { name: "EKS", icon: Container },
+  { name: "Lambda", icon: Zap },
+  { name: "IAM", icon: Shield },
+  { name: "Route53", icon: Globe },
+];
+
+export default function DashboardPage() {
+  const [status, setStatus] = useState<StatusInfo | null>(null);
   const [jobs, setJobs] = useState<any[]>([]);
 
   useEffect(() => {
-    apiClient.request<any>("/history?limit=5")
+    Promise.all([
+      apiClient.getHealth().catch(() => ({ gcp_authenticated: false })),
+      apiClient.request<any>("/settings/ai/status").catch(() => ({ configured: false })),
+    ]).then(([health, ai]) => {
+      setStatus({
+        gcp: (health as HealthResponse).gcp_authenticated || false,
+        ai: ai.configured || false,
+        aiProvider: ai.provider || null,
+      });
+    });
+
+    apiClient.request<any>("/history?limit=8")
       .then((data) => setJobs(data.jobs || []))
       .catch(() => {});
   }, []);
 
-  if (jobs.length === 0) return null;
-
   return (
-    <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 animate-slide-up">
-      <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight mb-4">
-        Recent Activity
-      </h3>
-      <div className="space-y-2">
-        {jobs.map((job) => (
-          <div key={job.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/[0.04] last:border-0">
-            <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${
-                job.status === "completed" ? "bg-green-500" : job.status === "running" ? "bg-amber-500 animate-pulse" : "bg-red-500"
-              }`} />
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
-                  {job.type} <span className="text-xs text-muted-foreground font-normal">({job.provider})</span>
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {job.resources_found > 0 && `${job.resources_found} resources · `}
-                  {job.created_at?.replace("T", " ").slice(0, 16)}
-                </p>
-              </div>
+    <div className="space-y-6 animate-fade-in">
+      {/* System status bar */}
+      <div className="flex items-center gap-4 text-xs">
+        <StatusBadge label="GCP" ok={status?.gcp ?? null} />
+        <StatusBadge label="AI" ok={status?.ai ?? null} detail={status?.aiProvider || undefined} />
+        <StatusBadge label="Terraform" ok={true} detail="v1.9+" />
+      </div>
+
+      {/* Pipeline — quick actions as a workflow */}
+      <div>
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Workflow</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          <WorkflowStep href="/discover" step="1" icon={Search} label="Discover" description="Scan cloud resources" />
+          <WorkflowStep href="/generate" step="2" icon={Code} label="Generate" description="Create Terraform HCL" />
+          <WorkflowStep href="/auto-import" step="3" icon={Upload} label="Import" description="Import into state" />
+          <WorkflowStep href="/drift" step="4" icon={RefreshCw} label="Drift Fix" description="Detect & fix drift" />
+          <WorkflowStep href="/state-viz" step="5" icon={Network} label="Visualize" description="View dependencies" />
+        </div>
+      </div>
+
+      {/* Supported resources */}
+      <div>
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Supported Resources</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {/* GCP */}
+          <div className="rounded-md border border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium">Google Cloud Platform</span>
+              <span className="text-[11px] font-mono text-emerald-500">47+ types</span>
             </div>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-              job.status === "completed" ? "bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400"
-              : job.status === "running" ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
-              : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400"
-            }`}>
-              {job.status}
-            </span>
+            <div className="grid grid-cols-4 gap-2">
+              {gcpResources.map((r) => (
+                <div key={r.name} className="flex flex-col items-center gap-1 py-2 rounded-md hover:bg-muted/50 transition-colors">
+                  <r.icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground text-center">{r.name}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3 pt-3 border-t border-border">
+              + Pub/Sub, DNS, BigQuery, Cloud Functions, Load Balancers, NAT, VPN, Cloud Armor, Secret Manager, KMS, Artifact Registry, Spanner, Dataflow, Composer, and more.
+            </p>
           </div>
-        ))}
+
+          {/* AWS */}
+          <div className="rounded-md border border-border p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium">Amazon Web Services</span>
+              <span className="text-[11px] font-mono text-emerald-500">20+ types</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {awsResources.map((r) => (
+                <div key={r.name} className="flex flex-col items-center gap-1 py-2 rounded-md hover:bg-muted/50 transition-colors">
+                  <r.icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground text-center">{r.name}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3 pt-3 border-t border-border">
+              + ELB, CloudFront, SQS, SNS, DynamoDB, ECS, Secrets Manager, CloudWatch, API Gateway, Elastic IPs.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent activity */}
+      <div>
+        <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">Recent Activity</h2>
+        {jobs.length > 0 ? (
+          <div className="rounded-md border border-border divide-y divide-border">
+            {jobs.map((job: any, i: number) => (
+              <div key={i} className="flex items-center justify-between px-4 py-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${job.status === "completed" ? "bg-emerald-500" : job.status === "failed" ? "bg-red-400" : "bg-zinc-400"}`} />
+                  <span className="font-medium text-[13px]">{job.type || "Job"}</span>
+                  {job.project && <span className="font-mono text-[11px] text-muted-foreground">{job.project}</span>}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[11px] font-mono ${job.status === "completed" ? "text-emerald-500" : job.status === "failed" ? "text-red-400" : "text-muted-foreground"}`}>
+                    {job.status}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">{job.created_at ? new Date(job.created_at).toLocaleDateString() : ""}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-md border border-border p-6 text-center">
+            <p className="text-sm text-muted-foreground">No recent activity</p>
+            <p className="text-xs text-muted-foreground mt-1">Start by discovering resources in your cloud project.</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default function DashboardPage() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [aiInfo, setAiInfo] = useState<AIInfo | null>(null);
-  const [awsConfigured, setAwsConfigured] = useState<boolean>(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      apiClient.getHealth().catch(() => null),
-      apiClient.getAISettings().catch(() => null),
-      apiClient.getAWSStatus().catch(() => ({ configured: false })),
-    ]).then(([h, ai, aws]) => {
-      setHealth(h);
-      if (ai) {
-        const configuredProviders = ai.providers.filter((p: any) => p.configured);
-        setAiInfo({
-          configured: ai.is_configured,
-          active: ai.active_provider,
-          count: configuredProviders.length,
-        });
-      }
-      setAwsConfigured(aws?.configured || false);
-      setLoading(false);
-    });
-  }, []);
-
+function StatusBadge({ label, ok, detail }: { label: string; ok: boolean | null; detail?: string }) {
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Hero section — subtle, not overwhelming */}
-      <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-indigo-500/90 via-violet-500/90 to-purple-600/90 p-8 lg:p-10">
-        {/* Subtle grid pattern overlay */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
-        {/* Subtle glow */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
-
-        <div className="relative z-10">
-          <p className="text-sm font-medium text-white/70 mb-2 tracking-wide uppercase">
-            Dashboard
-          </p>
-          <h1 className="text-2xl lg:text-3xl font-semibold text-white tracking-[-0.025em] mb-2">
-            Welcome back
-          </h1>
-          <p className="text-base text-white/60 max-w-lg">
-            Scan your GCP infrastructure and generate production-ready Terraform configurations.
-          </p>
-          <a
-            href="/discover"
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 active:scale-[0.98] transition-all duration-150"
-          >
-            Start Discovering <ArrowRight className="h-4 w-4" />
-          </a>
-        </div>
-      </section>
-
-      {/* System Status */}
-      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 animate-slide-up">
-        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-          System Status
-        </h3>
-        {loading ? (
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
-            <span className="text-sm text-gray-500 dark:text-gray-400">Checking connection...</span>
-          </div>
-        ) : health ? (
-          <>
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">API Connected</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {health.gcp_authenticated ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">GCP Authenticated</span>
-                </>
-              ) : (
-                <>
-                  <XCircle className="h-4 w-4 text-rose-500" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">GCP Not Authenticated</span>
-                </>
-              )}
-            </div>
-            <span className="ml-auto text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
-              v{health.version}
-            </span>
-          </div>
-          {/* AWS Status */}
-          <div className="flex items-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.04]">
-            <div className="flex items-center gap-2">
-              {awsConfigured ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">AWS Connected</span>
-                </>
-              ) : (
-                <>
-                  <XCircle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">AWS Not Configured</span>
-                </>
-              )}
-            </div>
-            {!awsConfigured && (
-              <a href="/settings" className="text-xs text-primary hover:underline">
-                Configure →
-              </a>
-            )}
-          </div>
-          {/* AI Provider Status */}
-          {aiInfo && (
-            <div className="flex items-center gap-6 mt-3 pt-3 border-t border-gray-100 dark:border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                {aiInfo.configured ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">AI Enabled</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
-                    <span className="text-sm text-gray-500 dark:text-gray-400">AI Not Configured</span>
-                  </>
-                )}
-              </div>
-              {aiInfo.configured && aiInfo.active && (
-                <div className="flex items-center gap-2">
-                  <BrainCircuit className="h-3.5 w-3.5 text-violet-500" />
-                  <span className="text-xs text-gray-600 dark:text-gray-300">
-                    Active: <span className="font-medium">{aiInfo.active}</span>
-                    {aiInfo.count > 1 && (
-                      <span className="text-gray-400 dark:text-gray-500"> (+{aiInfo.count - 1} more)</span>
-                    )}
-                  </span>
-                </div>
-              )}
-              {!aiInfo.configured && (
-                <a href="/settings" className="text-xs text-primary hover:underline">
-                  Configure →
-                </a>
-              )}
-            </div>
-          )}
-          </>
-        ) : (
-          <div className="flex items-center gap-2">
-            <XCircle className="h-4 w-4 text-rose-500" />
-            <span className="text-sm text-gray-700 dark:text-gray-300">Backend not reachable</span>
-          </div>
-        )}
-      </div>
-
-      {/* Supported Resources Grid */}
-      <div className="animate-slide-up space-y-6">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
-          Supported Resources
-        </h3>
-
-        {/* GCP */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <GCPLogo className="h-4 w-4" />
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Google Cloud Platform</span>
-            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{resourceCards.length}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {resourceCards.map((card) => (
-              <div
-                key={card.name}
-                className="group relative rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-white/[0.1] hover:shadow-md cursor-default"
-              >
-                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${card.color} shadow-sm`}>
-                    <card.icon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{card.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{card.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* AWS */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <AWSLogo className="h-4 w-4" />
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amazon Web Services</span>
-            <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{awsResourceCards.length}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {awsResourceCards.map((card) => (
-              <div
-                key={card.name}
-                className="group relative rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 transition-all duration-200 hover:border-gray-300 dark:hover:border-white/[0.1] hover:shadow-md cursor-default"
-              >
-                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${card.color} shadow-sm`}>
-                    <card.icon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{card.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{card.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Start */}
-      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-6 animate-slide-up">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight mb-4">
-          Quick Start
-        </h3>
-        <ol className="space-y-3.5 text-sm text-gray-600 dark:text-gray-300">
-          <li className="flex items-start gap-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-bold text-white flex-shrink-0 shadow-sm">
-              1
-            </span>
-            <span>
-              Ensure GCP credentials are configured:{" "}
-              <code className="rounded-md bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 text-xs font-mono text-gray-700 dark:text-gray-300">
-                gcloud auth application-default login
-              </code>
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-bold text-white flex-shrink-0 shadow-sm">
-              2
-            </span>
-            <span>Navigate to Discover and select your project, folder, or organization scope</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-bold text-white flex-shrink-0 shadow-sm">
-              3
-            </span>
-            <span>Choose which resource types to scan and start discovery</span>
-          </li>
-          <li className="flex items-start gap-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-[10px] font-bold text-white flex-shrink-0 shadow-sm">
-              4
-            </span>
-            <span>Review results, generate Terraform code, and download the import script</span>
-          </li>
-        </ol>
-      </div>
-
-      {/* Recent Activity */}
-      <RecentActivity />
+    <div className="flex items-center gap-1.5">
+      <div className={`w-1.5 h-1.5 rounded-full ${ok === null ? "bg-zinc-500" : ok ? "bg-emerald-500" : "bg-red-400"}`} />
+      <span className="text-muted-foreground">{label}</span>
+      {detail && <span className="text-foreground font-mono">{detail}</span>}
     </div>
+  );
+}
+
+function WorkflowStep({ href, step, icon: Icon, label, description }: { href: string; step: string; icon: any; label: string; description: string }) {
+  return (
+    <Link
+      href={href}
+      className="group relative flex flex-col items-start rounded-md border border-border px-3 py-3 hover:border-emerald-500/30 hover:bg-muted/30 transition-colors"
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[10px] font-mono text-muted-foreground">{step}</span>
+        <Icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+      </div>
+      <p className="text-sm font-medium group-hover:text-emerald-500 transition-colors">{label}</p>
+      <p className="text-[11px] text-muted-foreground">{description}</p>
+    </Link>
   );
 }

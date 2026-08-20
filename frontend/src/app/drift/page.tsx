@@ -263,35 +263,30 @@ function DriftPageContent() {
   const hasJob = jobId !== null;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
-          <RefreshCw className="h-4 w-4 text-white" />
-        </div>
+      <div className="flex items-center justify-between pb-3 border-b border-border">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Drift Detection & Auto-Fix</h1>
-          <p className="text-sm text-muted-foreground">
-            Detect and automatically correct configuration drift using AI.
+          <h1 className="text-lg font-medium">Drift Detection & Auto-Fix</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Detect and correct configuration drift using AI.
           </p>
         </div>
       </div>
 
       {/* Prerequisites Check */}
       {prereqs && !prereqs.ready && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4 space-y-2">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                Prerequisites not met
-              </p>
-              <ul className="text-xs text-amber-600 dark:text-amber-400 mt-1 space-y-1">
+              <p className="text-sm font-medium">Prerequisites not met</p>
+              <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
                 {prereqs.missing.map((msg, i) => (
                   <li key={i}>• {msg}</li>
                 ))}
               </ul>
-              <a href="/settings" className="inline-flex items-center gap-1 mt-2 text-xs text-primary hover:underline">
+              <a href="/settings" className="text-xs text-emerald-500 hover:underline mt-1 inline-block">
                 Go to Settings →
               </a>
             </div>
@@ -300,18 +295,16 @@ function DriftPageContent() {
       )}
 
       {prereqs?.ready && (
-        <div className="rounded-xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-3 flex items-center gap-3">
-          <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-          <span className="text-xs text-green-700 dark:text-green-300">
-            AI ready ({prereqs.ai_provider}) — Drift detection available
-          </span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          AI ready ({prereqs.ai_provider})
         </div>
       )}
 
       {/* Configuration + Code Editor + Terminal */}
       <div className={`grid grid-cols-1 gap-4 ${hasJob ? "lg:grid-cols-12" : "lg:grid-cols-12"}`}>
         {/* Left: Configuration */}
-        <div className="lg:col-span-3 rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-5 space-y-4">
+        <div className="lg:col-span-3 rounded-md border border-border bg-background p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Configuration
@@ -376,7 +369,7 @@ function DriftPageContent() {
             <button
               onClick={startDrift}
               disabled={running || !prereqs?.ready}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 text-white text-sm font-medium shadow-sm hover:from-indigo-400 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md bg-foreground text-background text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-40 disabled:pointer-events-none"
             >
               {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               {running ? "Running..." : "Start Drift Detection"}
@@ -387,17 +380,17 @@ function DriftPageContent() {
               <button
                 onClick={stopDrift}
                 disabled={cancelling}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-b from-red-500 to-red-600 text-white text-sm font-medium shadow-sm hover:from-red-400 hover:to-red-500 active:scale-[0.98] transition-all duration-150 disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-md border border-red-400/50 text-red-400 text-sm font-medium hover:bg-red-400/10 transition-colors disabled:opacity-40"
               >
                 <Square className="h-3.5 w-3.5 fill-current" />
-                {cancelling ? "Stopping..." : "Stop Process"}
+                {cancelling ? "Stopping..." : "Stop"}
               </button>
             )}
           </div>
         </div>
 
         {/* Center: Code Editor */}
-        <div className={`${hasJob ? "lg:col-span-3" : "lg:col-span-9"} rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] overflow-hidden flex flex-col transition-all duration-300`}>
+        <div className={`${hasJob ? "lg:col-span-3" : "lg:col-span-9"} rounded-md border border-border bg-background overflow-hidden flex flex-col transition-all duration-300`}>
           <div className="px-4 py-2.5 border-b border-border/50 flex items-center justify-between bg-muted/20">
             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <FileText className="h-3 w-3" />
@@ -503,7 +496,7 @@ function DriftPageContent() {
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-4 animate-slide-up">
+        <div className="rounded-md border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 p-4 animate-slide-up">
           <div className="flex items-start gap-3">
             <XCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
@@ -551,7 +544,7 @@ function DiffResults({ originalContent, results }: { originalContent: string; re
   return (
     <div className="space-y-3 animate-slide-up">
       {/* Result header */}
-      <div className="rounded-xl border border-gray-200/60 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] p-4 flex items-center justify-between">
+      <div className="rounded-md border border-border bg-background p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {results.result.drift_fixed || !results.result.drift_detected ? (
             <CheckCircle2 className="h-5 w-5 text-green-500" />
@@ -587,7 +580,7 @@ function DiffResults({ originalContent, results }: { originalContent: string; re
 
       {/* Drift not resolved */}
       {results.result.drift_detected && !results.result.drift_fixed && results.result.remaining_drift && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4">
+        <div className="rounded-md border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4">
           <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1.5">Unresolved Drift</p>
           <pre className="text-[10px] font-mono text-amber-700 dark:text-amber-400 whitespace-pre-wrap max-h-32 overflow-y-auto">{results.result.remaining_drift}</pre>
         </div>
@@ -595,9 +588,9 @@ function DiffResults({ originalContent, results }: { originalContent: string; re
 
       {/* Side-by-side diff */}
       {diff.hasChanges && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-xl border border-gray-200/60 dark:border-white/[0.06] overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-md border border-border overflow-hidden">
           {/* Left: Original */}
-          <div className="border-r border-gray-200/60 dark:border-white/[0.06] overflow-hidden flex flex-col">
+          <div className="border-r border-border overflow-hidden flex flex-col">
             <div className="px-4 py-2.5 border-b border-border/50 bg-red-50/30 dark:bg-red-500/[0.03]">
               <span className="text-xs font-semibold text-red-700 dark:text-red-400 uppercase tracking-wider">Original</span>
             </div>
@@ -660,7 +653,7 @@ function DiffResults({ originalContent, results }: { originalContent: string; re
 
       {/* No changes case */}
       {!diff.hasChanges && results.result.final_files && (
-        <div className="rounded-xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-6 text-center">
+        <div className="rounded-md border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-6 text-center">
           <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
           <p className="text-sm font-medium text-green-800 dark:text-green-300">No changes needed — code matches infrastructure.</p>
         </div>

@@ -79,7 +79,7 @@ function AWSCredentialsSection() {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card/50 p-5 space-y-4">
+    <div className="rounded-md border border-border bg-card/50 p-5 space-y-4">
       {/* Status */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
     <div className="space-y-6 animate-fade-in max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-sm">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
           <Settings className="h-4 w-4 text-white" />
         </div>
         <div>
@@ -278,7 +278,7 @@ export default function SettingsPage() {
 
       {/* Status Banner */}
       {settings && !settings.is_configured && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4 flex items-start gap-3">
+        <div className="rounded-md border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 p-4 flex items-start gap-3">
           <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
@@ -292,7 +292,7 @@ export default function SettingsPage() {
       )}
 
       {settings?.is_configured && (
-        <div className="rounded-xl border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-4 flex items-center gap-3">
+        <div className="rounded-md border border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 p-4 flex items-center gap-3">
           <Sparkles className="h-5 w-5 text-green-500 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-green-800 dark:text-green-300">
@@ -307,7 +307,7 @@ export default function SettingsPage() {
 
       {/* Message */}
       {message && (
-        <div className={`rounded-xl border p-3 text-sm animate-slide-up ${
+        <div className={`rounded-md border p-3 text-sm animate-slide-up ${
           message.type === "success"
             ? "border-green-200 dark:border-green-500/20 bg-green-50 dark:bg-green-500/5 text-green-700 dark:text-green-300"
             : "border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 text-red-700 dark:text-red-300"
@@ -317,7 +317,7 @@ export default function SettingsPage() {
       )}
 
       {/* Cloud Providers */}
-      <div className="rounded-xl border border-border overflow-hidden border-l-2 border-l-orange-400">
+      <div className="rounded-md border border-border overflow-hidden border-l-2 border-l-orange-400">
         <div
           role="button" tabIndex={0} aria-expanded={awsSectionOpen}
           className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
@@ -346,7 +346,7 @@ export default function SettingsPage() {
       </div>
 
       {/* AI Provider List */}
-      <div className="rounded-xl border border-border overflow-hidden border-l-2 border-l-violet-400">
+      <div className="rounded-md border border-border overflow-hidden border-l-2 border-l-violet-400">
         <div
           role="button" tabIndex={0} aria-expanded={aiSectionOpen}
           className="flex items-center justify-between px-5 py-4 cursor-pointer select-none hover:bg-muted/30 transition-colors"
@@ -371,7 +371,7 @@ export default function SettingsPage() {
         {settings?.providers.map((provider) => (
           <div
             key={provider.provider}
-            className={`rounded-xl border transition-all duration-200 ${
+            className={`rounded-md border transition-all duration-200 ${
               settings.active_provider === provider.provider
                 ? "border-primary/30 bg-primary/5"
                 : "border-border bg-card/50"
