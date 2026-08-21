@@ -1,11 +1,43 @@
+# ECS Cluster: {{ resource.name }}
 resource "aws_ecs_cluster" "{{ resource.terraform_resource_name }}" {
   name = "{{ attrs.name }}"
+{% if attrs.setting %}
+{% for s in attrs.setting %}
+  setting {
+    name  = "{{ s.name }}"
+    value = "{{ s.value }}"
+  }
+{% endfor %}
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}
 }
+{% if attrs.capacity_providers %}
+
+resource "aws_ecs_cluster_capacity_providers" "{{ resource.terraform_resource_name }}" {
+  cluster_name       = aws_ecs_cluster.{{ resource.terraform_resource_name }}.name
+  capacity_providers = [
+{% for cp in attrs.capacity_providers %}
+    "{{ cp }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% if attrs.default_capacity_provider_strategy %}
+{% for strategy in attrs.default_capacity_provider_strategy %}
+  default_capacity_provider_strategy {
+    capacity_provider = "{{ strategy.capacity_provider }}"
+{% if strategy.weight is not none %}
+    weight            = {{ strategy.weight }}
+{% endif %}
+{% if strategy.base is not none %}
+    base              = {{ strategy.base }}
+{% endif %}
+  }
+{% endfor %}
+{% endif %}
+}
+{% endif %}

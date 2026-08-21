@@ -1,20 +1,97 @@
+# RDS Instance: {{ resource.name }}
 resource "aws_db_instance" "{{ resource.terraform_resource_name }}" {
-  identifier          = "{{ attrs.identifier }}"
-  engine              = "{{ attrs.engine }}"
-  engine_version      = "{{ attrs.engine_version }}"
-  instance_class      = "{{ attrs.instance_class }}"
-  allocated_storage   = {{ attrs.allocated_storage }}
-  storage_type        = "{{ attrs.storage_type }}"
-  multi_az            = {{ attrs.multi_az | lower }}
+  identifier     = "{{ attrs.identifier }}"
+  engine         = "{{ attrs.engine }}"
+{% if attrs.engine_version %}
+  engine_version = "{{ attrs.engine_version }}"
+{% endif %}
+  instance_class = "{{ attrs.instance_class }}"
+{% if attrs.allocated_storage %}
+  allocated_storage = {{ attrs.allocated_storage }}
+{% endif %}
+{% if attrs.max_allocated_storage %}
+  max_allocated_storage = {{ attrs.max_allocated_storage }}
+{% endif %}
+{% if attrs.storage_type %}
+  storage_type = "{{ attrs.storage_type }}"
+{% endif %}
+{% if attrs.storage_encrypted is not none %}
+  storage_encrypted = {{ attrs.storage_encrypted | lower }}
+{% endif %}
+{% if attrs.kms_key_id %}
+  kms_key_id = "{{ attrs.kms_key_id }}"
+{% endif %}
+{% if attrs.db_name %}
+  db_name  = "{{ attrs.db_name }}"
+{% endif %}
+{% if attrs.username %}
+  username = "{{ attrs.username }}"
+{% endif %}
+{% if attrs.port %}
+  port = {{ attrs.port }}
+{% endif %}
+{% if attrs.multi_az is not none %}
+  multi_az = {{ attrs.multi_az | lower }}
+{% endif %}
+{% if attrs.db_subnet_group_name %}
+  db_subnet_group_name = "{{ attrs.db_subnet_group_name }}"
+{% endif %}
+{% if attrs.vpc_security_group_ids %}
+  vpc_security_group_ids = [
+{% for sg in attrs.vpc_security_group_ids %}
+    "{{ sg }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.parameter_group_name %}
+  parameter_group_name = "{{ attrs.parameter_group_name }}"
+{% endif %}
+{% if attrs.publicly_accessible is not none %}
   publicly_accessible = {{ attrs.publicly_accessible | lower }}
-
-  skip_final_snapshot = true
+{% endif %}
+{% if attrs.backup_retention_period is not none %}
+  backup_retention_period = {{ attrs.backup_retention_period }}
+{% endif %}
+{% if attrs.backup_window %}
+  backup_window = "{{ attrs.backup_window }}"
+{% endif %}
+{% if attrs.maintenance_window %}
+  maintenance_window = "{{ attrs.maintenance_window }}"
+{% endif %}
+{% if attrs.auto_minor_version_upgrade is not none %}
+  auto_minor_version_upgrade = {{ attrs.auto_minor_version_upgrade | lower }}
+{% endif %}
+{% if attrs.deletion_protection is not none %}
+  deletion_protection = {{ attrs.deletion_protection | lower }}
+{% endif %}
+{% if attrs.skip_final_snapshot is not none %}
+  skip_final_snapshot = {{ attrs.skip_final_snapshot | lower }}
+{% endif %}
+{% if attrs.copy_tags_to_snapshot is not none %}
+  copy_tags_to_snapshot = {{ attrs.copy_tags_to_snapshot | lower }}
+{% endif %}
+{% if attrs.performance_insights_enabled is not none %}
+  performance_insights_enabled = {{ attrs.performance_insights_enabled | lower }}
+{% endif %}
+{% if attrs.monitoring_interval %}
+  monitoring_interval = {{ attrs.monitoring_interval }}
+{% endif %}
+{% if attrs.enabled_cloudwatch_logs_exports %}
+  enabled_cloudwatch_logs_exports = [
+{% for log in attrs.enabled_cloudwatch_logs_exports %}
+    "{{ log }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }

@@ -24,6 +24,7 @@ import { apiClient, type HealthResponse } from "@/lib/api";
 
 interface StatusInfo {
   gcp: boolean;
+  aws: boolean;
   ai: boolean;
   aiProvider: string | null;
 }
@@ -58,9 +59,11 @@ export default function DashboardPage() {
     Promise.all([
       apiClient.getHealth().catch(() => ({ gcp_authenticated: false })),
       apiClient.request<any>("/settings/ai/status").catch(() => ({ configured: false })),
-    ]).then(([health, ai]) => {
+      apiClient.request<any>("/settings/aws/status").catch(() => ({ configured: false })),
+    ]).then(([health, ai, aws]) => {
       setStatus({
         gcp: (health as HealthResponse).gcp_authenticated || false,
+        aws: aws.configured || false,
         ai: ai.configured || false,
         aiProvider: ai.provider || null,
       });
@@ -76,6 +79,7 @@ export default function DashboardPage() {
       {/* System status bar */}
       <div className="flex items-center gap-4 text-xs">
         <StatusBadge label="GCP" ok={status?.gcp ?? null} />
+        <StatusBadge label="AWS" ok={status?.aws ?? null} />
         <StatusBadge label="AI" ok={status?.ai ?? null} detail={status?.aiProvider || undefined} />
         <StatusBadge label="Terraform" ok={true} detail="v1.9+" />
       </div>

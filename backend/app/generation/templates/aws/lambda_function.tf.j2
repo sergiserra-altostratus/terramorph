@@ -1,20 +1,68 @@
+# Lambda Function: {{ resource.name }}
 resource "aws_lambda_function" "{{ resource.terraform_resource_name }}" {
   function_name = "{{ attrs.function_name }}"
   role          = "{{ attrs.role }}"
+{% if attrs.handler %}
   handler       = "{{ attrs.handler }}"
-  runtime       = "{{ attrs.runtime }}"
-  memory_size   = {{ attrs.memory_size }}
-  timeout       = {{ attrs.timeout }}
-{% if attrs.description %}
-  description   = "{{ attrs.description }}"
 {% endif %}
-
-  filename = "placeholder.zip"
+{% if attrs.runtime %}
+  runtime       = "{{ attrs.runtime }}"
+{% endif %}
+{% if attrs.description %}
+  description = "{{ attrs.description }}"
+{% endif %}
+{% if attrs.memory_size %}
+  memory_size = {{ attrs.memory_size }}
+{% endif %}
+{% if attrs.timeout %}
+  timeout = {{ attrs.timeout }}
+{% endif %}
+{% if attrs.architectures %}
+  architectures = [
+{% for arch in attrs.architectures %}
+    "{{ arch }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.layers %}
+  layers = [
+{% for layer in attrs.layers %}
+    "{{ layer }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.environment %}
+  environment {
+    variables = {
+{% for key, value in attrs.environment.items() %}
+      "{{ key }}" = "{{ value }}"
+{% endfor %}
+    }
+  }
+{% endif %}
+{% if attrs.vpc_config %}
+  vpc_config {
+    subnet_ids = [
+{% for subnet in attrs.vpc_config.subnet_ids %}
+      "{{ subnet }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+    security_group_ids = [
+{% for sg in attrs.vpc_config.security_group_ids %}
+      "{{ sg }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+  }
+{% endif %}
+{% if attrs.tracing_config %}
+  tracing_config {
+    mode = "{{ attrs.tracing_config.mode }}"
+  }
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

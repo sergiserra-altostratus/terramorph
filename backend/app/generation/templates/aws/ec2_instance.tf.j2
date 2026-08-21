@@ -1,18 +1,66 @@
+# EC2 Instance: {{ resource.name }}
 resource "aws_instance" "{{ resource.terraform_resource_name }}" {
   ami           = "{{ attrs.ami }}"
   instance_type = "{{ attrs.instance_type }}"
-{% if attrs.subnet_id %}
-  subnet_id     = "{{ attrs.subnet_id }}"
-{% endif %}
 {% if attrs.key_name %}
   key_name      = "{{ attrs.key_name }}"
 {% endif %}
-
+{% if attrs.subnet_id %}
+  subnet_id     = "{{ attrs.subnet_id }}"
+{% endif %}
+{% if attrs.availability_zone %}
+  availability_zone = "{{ attrs.availability_zone }}"
+{% endif %}
+{% if attrs.vpc_security_group_ids %}
+  vpc_security_group_ids = [
+{% for sg in attrs.vpc_security_group_ids %}
+    "{{ sg }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.iam_instance_profile %}
+  iam_instance_profile = "{{ attrs.iam_instance_profile }}"
+{% endif %}
+{% if attrs.monitoring is not none %}
+  monitoring = {{ attrs.monitoring | lower }}
+{% endif %}
+{% if attrs.ebs_optimized is not none %}
+  ebs_optimized = {{ attrs.ebs_optimized | lower }}
+{% endif %}
+{% if attrs.tenancy %}
+  tenancy = "{{ attrs.tenancy }}"
+{% endif %}
+{% if attrs.private_ip %}
+  private_ip = "{{ attrs.private_ip }}"
+{% endif %}
+{% if attrs.associate_public_ip_address is not none %}
+  associate_public_ip_address = {{ attrs.associate_public_ip_address | lower }}
+{% endif %}
+{% if attrs.root_block_device %}
+  root_block_device {
+{% if attrs.root_block_device.volume_type %}
+    volume_type           = "{{ attrs.root_block_device.volume_type }}"
+{% endif %}
+{% if attrs.root_block_device.volume_size %}
+    volume_size           = {{ attrs.root_block_device.volume_size }}
+{% endif %}
+{% if attrs.root_block_device.encrypted is not none %}
+    encrypted             = {{ attrs.root_block_device.encrypted | lower }}
+{% endif %}
+{% if attrs.root_block_device.delete_on_termination is not none %}
+    delete_on_termination = {{ attrs.root_block_device.delete_on_termination | lower }}
+{% endif %}
+  }
+{% endif %}
 {% if attrs.tags %}
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}
+
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }

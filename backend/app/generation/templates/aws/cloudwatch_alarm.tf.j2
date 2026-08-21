@@ -1,17 +1,57 @@
+# CloudWatch Metric Alarm: {{ resource.name }}
 resource "aws_cloudwatch_metric_alarm" "{{ resource.terraform_resource_name }}" {
   alarm_name          = "{{ attrs.alarm_name }}"
-  metric_name         = "{{ attrs.metric_name }}"
-  namespace           = "{{ attrs.namespace }}"
   comparison_operator = "{{ attrs.comparison_operator }}"
-  threshold           = {{ attrs.threshold }}
-  period              = {{ attrs.period }}
   evaluation_periods  = {{ attrs.evaluation_periods }}
-  statistic           = "{{ attrs.statistic }}"
+{% if attrs.metric_name %}
+  metric_name = "{{ attrs.metric_name }}"
+{% endif %}
+{% if attrs.namespace %}
+  namespace = "{{ attrs.namespace }}"
+{% endif %}
+{% if attrs.period %}
+  period = {{ attrs.period }}
+{% endif %}
+{% if attrs.statistic %}
+  statistic = "{{ attrs.statistic }}"
+{% endif %}
+{% if attrs.threshold is not none %}
+  threshold = {{ attrs.threshold }}
+{% endif %}
+{% if attrs.alarm_description %}
+  alarm_description = "{{ attrs.alarm_description }}"
+{% endif %}
+{% if attrs.actions_enabled is not none %}
+  actions_enabled = {{ attrs.actions_enabled | lower }}
+{% endif %}
+{% if attrs.alarm_actions %}
+  alarm_actions = [
+{% for action in attrs.alarm_actions %}
+    "{{ action }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.ok_actions %}
+  ok_actions = [
+{% for action in attrs.ok_actions %}
+    "{{ action }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.dimensions %}
+  dimensions = {
+{% for key, value in attrs.dimensions.items() %}
+    "{{ key }}" = "{{ value }}"
+{% endfor %}
+  }
+{% endif %}
+{% if attrs.treat_missing_data %}
+  treat_missing_data = "{{ attrs.treat_missing_data }}"
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

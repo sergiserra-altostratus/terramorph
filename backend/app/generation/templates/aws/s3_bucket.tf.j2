@@ -1,11 +1,57 @@
+# S3 Bucket: {{ resource.name }}
 resource "aws_s3_bucket" "{{ resource.terraform_resource_name }}" {
   bucket = "{{ attrs.bucket }}"
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}
 }
+{% if attrs.versioning %}
+
+resource "aws_s3_bucket_versioning" "{{ resource.terraform_resource_name }}" {
+  bucket = aws_s3_bucket.{{ resource.terraform_resource_name }}.id
+  versioning_configuration {
+    status = "{{ attrs.versioning.status | default('Enabled') }}"
+  }
+}
+{% endif %}
+{% if attrs.server_side_encryption %}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "{{ resource.terraform_resource_name }}" {
+  bucket = aws_s3_bucket.{{ resource.terraform_resource_name }}.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "{{ attrs.server_side_encryption.sse_algorithm }}"
+{% if attrs.server_side_encryption.kms_master_key_id %}
+      kms_master_key_id = "{{ attrs.server_side_encryption.kms_master_key_id }}"
+{% endif %}
+    }
+{% if attrs.server_side_encryption.bucket_key_enabled is not none %}
+    bucket_key_enabled = {{ attrs.server_side_encryption.bucket_key_enabled | lower }}
+{% endif %}
+  }
+}
+{% endif %}
+{% if attrs.public_access_block %}
+
+resource "aws_s3_bucket_public_access_block" "{{ resource.terraform_resource_name }}" {
+  bucket                  = aws_s3_bucket.{{ resource.terraform_resource_name }}.id
+  block_public_acls       = {{ attrs.public_access_block.block_public_acls | default(true) | lower }}
+  block_public_policy     = {{ attrs.public_access_block.block_public_policy | default(true) | lower }}
+  ignore_public_acls      = {{ attrs.public_access_block.ignore_public_acls | default(true) | lower }}
+  restrict_public_buckets = {{ attrs.public_access_block.restrict_public_buckets | default(true) | lower }}
+}
+{% endif %}
+{% if attrs.logging %}
+
+resource "aws_s3_bucket_logging" "{{ resource.terraform_resource_name }}" {
+  bucket        = aws_s3_bucket.{{ resource.terraform_resource_name }}.id
+  target_bucket = "{{ attrs.logging.target_bucket }}"
+{% if attrs.logging.target_prefix %}
+  target_prefix = "{{ attrs.logging.target_prefix }}"
+{% endif %}
+}
+{% endif %}

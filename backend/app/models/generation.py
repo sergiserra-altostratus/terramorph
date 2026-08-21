@@ -47,6 +47,10 @@ class GenerationRequest(BaseModel):
     """Request to generate Terraform code."""
 
     job_id: str = Field(description="Discovery job ID to generate from")
+    provider: str = Field(
+        default="gcp",
+        description="Cloud provider: 'gcp' or 'aws'",
+    )
     resource_ids: list[str] = Field(
         default=["all"],
         description="Resource IDs to generate, or ['all'] for all discovered resources",

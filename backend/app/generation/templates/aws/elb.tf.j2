@@ -1,16 +1,37 @@
+# Load Balancer: {{ resource.name }}
 resource "aws_lb" "{{ resource.terraform_resource_name }}" {
   name               = "{{ attrs.name }}"
-  internal           = {{ (attrs.scheme == "internal") | lower }}
-  load_balancer_type = "{{ attrs.type }}"
-
-{% if attrs.vpc_id %}
-  # vpc_id: {{ attrs.vpc_id }}
+{% if attrs.internal is not none %}
+  internal           = {{ attrs.internal | lower }}
+{% endif %}
+  load_balancer_type = "{{ attrs.load_balancer_type | default('application') }}"
+{% if attrs.security_groups %}
+  security_groups = [
+{% for sg in attrs.security_groups %}
+    "{{ sg }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.subnets %}
+  subnets = [
+{% for subnet in attrs.subnets %}
+    "{{ subnet }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.enable_deletion_protection is not none %}
+  enable_deletion_protection = {{ attrs.enable_deletion_protection | lower }}
+{% endif %}
+{% if attrs.idle_timeout %}
+  idle_timeout = {{ attrs.idle_timeout }}
+{% endif %}
+{% if attrs.ip_address_type %}
+  ip_address_type = "{{ attrs.ip_address_type }}"
 {% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

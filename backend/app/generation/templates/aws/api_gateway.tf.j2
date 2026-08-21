@@ -1,17 +1,32 @@
+# API Gateway REST API: {{ resource.name }}
 resource "aws_api_gateway_rest_api" "{{ resource.terraform_resource_name }}" {
   name = "{{ attrs.name }}"
 {% if attrs.description %}
   description = "{{ attrs.description }}"
 {% endif %}
-
+{% if attrs.api_key_source %}
+  api_key_source = "{{ attrs.api_key_source }}"
+{% endif %}
+{% if attrs.binary_media_types %}
+  binary_media_types = [
+{% for type in attrs.binary_media_types %}
+    "{{ type }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.endpoint_configuration %}
   endpoint_configuration {
-    types = ["{{ attrs.endpoint_type }}"]
+    types = [
+{% for type in attrs.endpoint_configuration.types %}
+      "{{ type }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
   }
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

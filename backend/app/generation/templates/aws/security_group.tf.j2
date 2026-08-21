@@ -1,14 +1,73 @@
+# Security Group: {{ resource.name }}
 resource "aws_security_group" "{{ resource.terraform_resource_name }}" {
-  name        = "{{ resource.name }}"
-  vpc_id      = "{{ attrs.vpc_id }}"
+  name        = "{{ attrs.name }}"
 {% if attrs.description %}
   description = "{{ attrs.description }}"
 {% endif %}
+  vpc_id      = "{{ attrs.vpc_id }}"
+{% if attrs.ingress_rules %}
+{% for rule in attrs.ingress_rules %}
+  ingress {
+{% if rule.description %}
+    description = "{{ rule.description }}"
+{% endif %}
+    from_port   = {{ rule.from_port }}
+    to_port     = {{ rule.to_port }}
+    protocol    = "{{ rule.protocol }}"
+{% if rule.cidr_blocks %}
+    cidr_blocks = [
+{% for cidr in rule.cidr_blocks %}
+      "{{ cidr }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+{% if rule.ipv6_cidr_blocks %}
+    ipv6_cidr_blocks = [
+{% for cidr in rule.ipv6_cidr_blocks %}
+      "{{ cidr }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+{% if rule.security_groups %}
+    security_groups = [
+{% for sg in rule.security_groups %}
+      "{{ sg }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+  }
+{% endfor %}
+{% endif %}
+{% if attrs.egress_rules %}
+{% for rule in attrs.egress_rules %}
+  egress {
+{% if rule.description %}
+    description = "{{ rule.description }}"
+{% endif %}
+    from_port   = {{ rule.from_port }}
+    to_port     = {{ rule.to_port }}
+    protocol    = "{{ rule.protocol }}"
+{% if rule.cidr_blocks %}
+    cidr_blocks = [
+{% for cidr in rule.cidr_blocks %}
+      "{{ cidr }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+{% if rule.ipv6_cidr_blocks %}
+    ipv6_cidr_blocks = [
+{% for cidr in rule.ipv6_cidr_blocks %}
+      "{{ cidr }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+  }
+{% endfor %}
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

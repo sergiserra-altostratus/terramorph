@@ -1,10 +1,19 @@
+# VPC: {{ resource.name }}
 resource "aws_vpc" "{{ resource.terraform_resource_name }}" {
   cidr_block = "{{ attrs.cidr_block }}"
-
+{% if attrs.instance_tenancy %}
+  instance_tenancy = "{{ attrs.instance_tenancy }}"
+{% endif %}
+{% if attrs.enable_dns_support is not none %}
+  enable_dns_support = {{ attrs.enable_dns_support | lower }}
+{% endif %}
+{% if attrs.enable_dns_hostnames is not none %}
+  enable_dns_hostnames = {{ attrs.enable_dns_hostnames | lower }}
+{% endif %}
 {% if attrs.tags %}
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

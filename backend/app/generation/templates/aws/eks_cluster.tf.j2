@@ -1,20 +1,49 @@
+# EKS Cluster: {{ resource.name }}
 resource "aws_eks_cluster" "{{ resource.terraform_resource_name }}" {
   name     = "{{ attrs.name }}"
   role_arn = "{{ attrs.role_arn }}"
 {% if attrs.version %}
-  version  = "{{ attrs.version }}"
+  version = "{{ attrs.version }}"
 {% endif %}
-
+{% if attrs.enabled_cluster_log_types %}
+  enabled_cluster_log_types = [
+{% for log_type in attrs.enabled_cluster_log_types %}
+    "{{ log_type }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
   vpc_config {
-{% if attrs.subnet_ids %}
-    subnet_ids = [{% for s in attrs.subnet_ids %}"{{ s }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+    subnet_ids = [
+{% for subnet in attrs.vpc_config.subnet_ids %}
+      "{{ subnet }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% if attrs.vpc_config.security_group_ids %}
+    security_group_ids = [
+{% for sg in attrs.vpc_config.security_group_ids %}
+      "{{ sg }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+{% if attrs.vpc_config.endpoint_private_access is not none %}
+    endpoint_private_access = {{ attrs.vpc_config.endpoint_private_access | lower }}
+{% endif %}
+{% if attrs.vpc_config.endpoint_public_access is not none %}
+    endpoint_public_access = {{ attrs.vpc_config.endpoint_public_access | lower }}
 {% endif %}
   }
+{% if attrs.encryption_config %}
+  encryption_config {
+    resources = ["secrets"]
+    provider {
+      key_arn = "{{ attrs.encryption_config.provider_key_arn }}"
+    }
+  }
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

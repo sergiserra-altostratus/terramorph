@@ -1,43 +1,80 @@
+# CloudFront Distribution: {{ resource.name }}
 resource "aws_cloudfront_distribution" "{{ resource.terraform_resource_name }}" {
-  enabled = {{ attrs.enabled | lower }}
+  enabled = {{ attrs.enabled | default(true) | lower }}
 {% if attrs.comment %}
   comment = "{{ attrs.comment }}"
 {% endif %}
-
+{% if attrs.default_root_object %}
+  default_root_object = "{{ attrs.default_root_object }}"
+{% endif %}
+{% if attrs.price_class %}
+  price_class = "{{ attrs.price_class }}"
+{% endif %}
+{% if attrs.aliases %}
+  aliases = [
+{% for alias in attrs.aliases %}
+    "{{ alias }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
+{% if attrs.origins %}
+{% for origin in attrs.origins %}
+  origin {
+    domain_name = "{{ origin.domain_name }}"
+    origin_id   = "{{ origin.origin_id }}"
+{% if origin.origin_path %}
+    origin_path = "{{ origin.origin_path }}"
+{% endif %}
+{% if origin.s3_origin_config %}
+    s3_origin_config {
+      origin_access_identity = "{{ origin.s3_origin_config.origin_access_identity | default('') }}"
+    }
+{% endif %}
+{% if origin.custom_origin_config %}
+    custom_origin_config {
+      http_port              = {{ origin.custom_origin_config.http_port | default(80) }}
+      https_port             = {{ origin.custom_origin_config.https_port | default(443) }}
+      origin_protocol_policy = "{{ origin.custom_origin_config.origin_protocol_policy }}"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+{% endif %}
+  }
+{% endfor %}
+{% endif %}
   default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "default"
-
+    target_origin_id       = "{{ attrs.default_cache_behavior.target_origin_id }}"
+    viewer_protocol_policy = "{{ attrs.default_cache_behavior.viewer_protocol_policy | default('redirect-to-https') }}"
+    allowed_methods        = {{ attrs.default_cache_behavior.allowed_methods | default(["GET", "HEAD"]) }}
+    cached_methods         = {{ attrs.default_cache_behavior.cached_methods | default(["GET", "HEAD"]) }}
+{% if attrs.default_cache_behavior.cache_policy_id %}
+    cache_policy_id        = "{{ attrs.default_cache_behavior.cache_policy_id }}"
+{% else %}
     forwarded_values {
       query_string = false
       cookies {
         forward = "none"
       }
     }
-
-    viewer_protocol_policy = "redirect-to-https"
+{% endif %}
   }
-
-  origin {
-    domain_name = "placeholder.s3.amazonaws.com"
-    origin_id   = "default"
-  }
-
   restrictions {
     geo_restriction {
-      restriction_type = "none"
+      restriction_type = "{{ attrs.restrictions.geo_restriction.restriction_type | default('none') if attrs.restrictions else 'none' }}"
     }
   }
-
   viewer_certificate {
+{% if attrs.viewer_certificate and attrs.viewer_certificate.acm_certificate_arn %}
+    acm_certificate_arn      = "{{ attrs.viewer_certificate.acm_certificate_arn }}"
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+{% else %}
     cloudfront_default_certificate = true
+{% endif %}
   }
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

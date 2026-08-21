@@ -1,31 +1,77 @@
+# DynamoDB Table: {{ resource.name }}
 resource "aws_dynamodb_table" "{{ resource.terraform_resource_name }}" {
   name         = "{{ attrs.name }}"
-  billing_mode = "{{ attrs.billing_mode }}"
-  hash_key     = "{{ attrs.hash_key }}"
+  billing_mode = "{{ attrs.billing_mode | default('PAY_PER_REQUEST') }}"
+{% if attrs.billing_mode == 'PROVISIONED' or attrs.read_capacity %}
+  read_capacity  = {{ attrs.read_capacity | default(5) }}
+  write_capacity = {{ attrs.write_capacity | default(5) }}
+{% endif %}
+  hash_key  = "{{ attrs.hash_key }}"
 {% if attrs.range_key %}
-  range_key    = "{{ attrs.range_key }}"
+  range_key = "{{ attrs.range_key }}"
 {% endif %}
-
-{% if attrs.billing_mode == "PROVISIONED" %}
-  read_capacity  = {{ attrs.read_capacity }}
-  write_capacity = {{ attrs.write_capacity }}
+{% if attrs.table_class %}
+  table_class = "{{ attrs.table_class }}"
 {% endif %}
-
+{% if attrs.stream_enabled is not none %}
+  stream_enabled   = {{ attrs.stream_enabled | lower }}
+{% endif %}
+{% if attrs.stream_view_type %}
+  stream_view_type = "{{ attrs.stream_view_type }}"
+{% endif %}
+{% if attrs.deletion_protection_enabled is not none %}
+  deletion_protection_enabled = {{ attrs.deletion_protection_enabled | lower }}
+{% endif %}
+{% if attrs.attributes %}
+{% for attr in attrs.attributes %}
   attribute {
-    name = "{{ attrs.hash_key }}"
-    type = "S"
+    name = "{{ attr.name }}"
+    type = "{{ attr.type }}"
   }
-{% if attrs.range_key %}
-  attribute {
-    name = "{{ attrs.range_key }}"
-    type = "S"
+{% endfor %}
+{% endif %}
+{% if attrs.ttl %}
+  ttl {
+    attribute_name = "{{ attrs.ttl.attribute_name }}"
+    enabled        = {{ attrs.ttl.enabled | default(true) | lower }}
+  }
+{% endif %}
+{% if attrs.global_secondary_indexes %}
+{% for gsi in attrs.global_secondary_indexes %}
+  global_secondary_index {
+    name            = "{{ gsi.name }}"
+    hash_key        = "{{ gsi.hash_key }}"
+{% if gsi.range_key %}
+    range_key       = "{{ gsi.range_key }}"
+{% endif %}
+    projection_type = "{{ gsi.projection_type }}"
+{% if gsi.non_key_attributes %}
+    non_key_attributes = [
+{% for a in gsi.non_key_attributes %}
+      "{{ a }}"{{ "," if not loop.last }}
+{% endfor %}
+    ]
+{% endif %}
+  }
+{% endfor %}
+{% endif %}
+{% if attrs.server_side_encryption %}
+  server_side_encryption {
+    enabled     = {{ attrs.server_side_encryption.enabled | default(true) | lower }}
+{% if attrs.server_side_encryption.kms_key_arn %}
+    kms_key_arn = "{{ attrs.server_side_encryption.kms_key_arn }}"
+{% endif %}
+  }
+{% endif %}
+{% if attrs.point_in_time_recovery %}
+  point_in_time_recovery {
+    enabled = {{ attrs.point_in_time_recovery.enabled | default(false) | lower }}
   }
 {% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

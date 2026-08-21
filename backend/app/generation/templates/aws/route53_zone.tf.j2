@@ -1,16 +1,24 @@
+# Route53 Zone: {{ resource.name }}
 resource "aws_route53_zone" "{{ resource.terraform_resource_name }}" {
   name = "{{ attrs.name }}"
-
-{% if attrs.private_zone %}
+{% if attrs.comment %}
+  comment = "{{ attrs.comment }}"
+{% endif %}
+{% if attrs.force_destroy is not none %}
+  force_destroy = {{ attrs.force_destroy | lower }}
+{% endif %}
+{% if attrs.private_zone and attrs.vpc_id %}
   vpc {
-    vpc_id = ""
+    vpc_id = "{{ attrs.vpc_id }}"
+{% if attrs.vpc_region %}
+    vpc_region = "{{ attrs.vpc_region }}"
+{% endif %}
   }
 {% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

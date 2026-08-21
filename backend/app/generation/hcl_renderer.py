@@ -136,6 +136,51 @@ RESOURCE_TYPE_TEMPLATE_MAP = {
     ResourceType.HEALTH_CHECK: "health_check.tf.j2",
     ResourceType.GCP_FOLDER: "folder.tf.j2",
     ResourceType.GCP_PROJECT: "project.tf.j2",
+    # AWS resource types
+    ResourceType.AWS_EC2_INSTANCE: "aws/ec2_instance.tf.j2",
+    ResourceType.AWS_VPC: "aws/vpc.tf.j2",
+    ResourceType.AWS_SUBNET: "aws/subnet.tf.j2",
+    ResourceType.AWS_SECURITY_GROUP: "aws/security_group.tf.j2",
+    ResourceType.AWS_S3_BUCKET: "aws/s3_bucket.tf.j2",
+    ResourceType.AWS_RDS_INSTANCE: "aws/rds_instance.tf.j2",
+    ResourceType.AWS_EKS_CLUSTER: "aws/eks_cluster.tf.j2",
+    ResourceType.AWS_LAMBDA: "aws/lambda_function.tf.j2",
+    ResourceType.AWS_IAM_ROLE: "aws/iam_role.tf.j2",
+    ResourceType.AWS_ROUTE53_ZONE: "aws/route53_zone.tf.j2",
+    ResourceType.AWS_CLOUDFRONT: "aws/cloudfront.tf.j2",
+    ResourceType.AWS_ELB: "aws/elb.tf.j2",
+    ResourceType.AWS_DYNAMODB: "aws/dynamodb.tf.j2",
+    ResourceType.AWS_SNS_TOPIC: "aws/sns_topic.tf.j2",
+    ResourceType.AWS_SQS_QUEUE: "aws/sqs_queue.tf.j2",
+    ResourceType.AWS_CLOUDWATCH_ALARM: "aws/cloudwatch_alarm.tf.j2",
+    ResourceType.AWS_API_GATEWAY: "aws/api_gateway.tf.j2",
+    ResourceType.AWS_SECRETS_MANAGER: "aws/secrets_manager.tf.j2",
+    ResourceType.AWS_ECS_CLUSTER: "aws/ecs_cluster.tf.j2",
+    ResourceType.AWS_ELASTIC_IP: "aws/eip.tf.j2",
+}
+
+# AWS resource type -> output filename mapping
+AWS_RESOURCE_TYPE_FILE_MAP = {
+    ResourceType.AWS_EC2_INSTANCE: "ec2.tf",
+    ResourceType.AWS_VPC: "vpc.tf",
+    ResourceType.AWS_SUBNET: "vpc.tf",
+    ResourceType.AWS_SECURITY_GROUP: "security_groups.tf",
+    ResourceType.AWS_S3_BUCKET: "s3.tf",
+    ResourceType.AWS_RDS_INSTANCE: "rds.tf",
+    ResourceType.AWS_EKS_CLUSTER: "eks.tf",
+    ResourceType.AWS_LAMBDA: "lambda.tf",
+    ResourceType.AWS_IAM_ROLE: "iam.tf",
+    ResourceType.AWS_ROUTE53_ZONE: "route53.tf",
+    ResourceType.AWS_CLOUDFRONT: "cloudfront.tf",
+    ResourceType.AWS_ELB: "elb.tf",
+    ResourceType.AWS_DYNAMODB: "dynamodb.tf",
+    ResourceType.AWS_SNS_TOPIC: "sns.tf",
+    ResourceType.AWS_SQS_QUEUE: "sqs.tf",
+    ResourceType.AWS_CLOUDWATCH_ALARM: "cloudwatch.tf",
+    ResourceType.AWS_API_GATEWAY: "apigateway.tf",
+    ResourceType.AWS_SECRETS_MANAGER: "secrets.tf",
+    ResourceType.AWS_ECS_CLUSTER: "ecs.tf",
+    ResourceType.AWS_ELASTIC_IP: "eip.tf",
 }
 
 
@@ -150,8 +195,11 @@ class HCLRenderer:
             keep_trailing_newline=True,
         )
 
-    def render_provider(self, project_id: str) -> str:
-        """Render the provider.tf file."""
+    def render_provider(self, project_id: str, cloud_provider: str = "gcp") -> str:
+        """Render the provider.tf file for the given cloud provider."""
+        if cloud_provider == "aws":
+            template = self.env.get_template("aws/provider.tf.j2")
+            return template.render(region=project_id)  # For AWS, project_id is actually the region
         template = self.env.get_template("provider.tf.j2")
         return template.render(project_id=project_id)
 
@@ -220,7 +268,7 @@ class HCLRenderer:
         grouped: dict[str, list[str]] = {}
 
         for resource in resources:
-            filename = RESOURCE_TYPE_FILE_MAP.get(resource.type, "other.tf")
+            filename = RESOURCE_TYPE_FILE_MAP.get(resource.type) or AWS_RESOURCE_TYPE_FILE_MAP.get(resource.type, "other.tf")
             if filename not in grouped:
                 grouped[filename] = []
             grouped[filename].append(self.render_resource(resource))

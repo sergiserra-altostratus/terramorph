@@ -74,6 +74,7 @@ export interface DiscoveryResult {
 
 export interface GenerationRequest {
   job_id: string;
+  provider?: string;
   resource_ids: string[];
   options: {
     include_provider_block: boolean;
@@ -155,8 +156,8 @@ class ApiClient {
     });
   }
 
-  getDownloadUrl(jobId: string): string {
-    return `${this.baseUrl}/generate/download/${jobId}`;
+  getDownloadUrl(jobId: string, provider: string = "gcp"): string {
+    return `${this.baseUrl}/generate/download/${jobId}?provider=${provider}`;
   }
 
   async getAISettings(): Promise<any> {

@@ -1,25 +1,30 @@
+# IAM Role: {{ resource.name }}
 resource "aws_iam_role" "{{ resource.terraform_resource_name }}" {
-  name = "{{ attrs.role_name }}"
-{% if attrs.path and attrs.path != "/" %}
+  name = "{{ attrs.name }}"
+{% if attrs.path %}
   path = "{{ attrs.path }}"
 {% endif %}
 {% if attrs.description %}
   description = "{{ attrs.description }}"
 {% endif %}
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
+{% if attrs.max_session_duration %}
+  max_session_duration = {{ attrs.max_session_duration }}
+{% endif %}
+{% if attrs.permissions_boundary %}
+  permissions_boundary = "{{ attrs.permissions_boundary }}"
+{% endif %}
+  assume_role_policy = jsonencode({{ attrs.assume_role_policy | default('{}') }})
+{% if attrs.managed_policy_arns %}
+  managed_policy_arns = [
+{% for arn in attrs.managed_policy_arns %}
+    "{{ arn }}"{{ "," if not loop.last }}
+{% endfor %}
+  ]
+{% endif %}
 {% if attrs.tags %}
-
   tags = {
 {% for key, value in attrs.tags.items() %}
-    {{ key }} = "{{ value }}"
+    "{{ key }}" = "{{ value }}"
 {% endfor %}
   }
 {% endif %}

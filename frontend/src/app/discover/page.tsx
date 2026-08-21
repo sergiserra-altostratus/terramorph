@@ -631,7 +631,7 @@ export default function DiscoverPage() {
 
           {/* Generate Button */}
           <a
-            href={`/generate?job_id=${jobId}`}
+            href={`/generate?job_id=${jobId}&provider=${cloudProvider}`}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-foreground text-background text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-150"
           >
             <Sparkles className="h-4 w-4" />

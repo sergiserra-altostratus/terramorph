@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
 from app.discovery.orchestrator import get_job_results
+from app.discovery.aws.orchestrator import get_aws_job_results
 from app.generation.fmt import fmt_content
 from app.generation.hcl_renderer import HCLRenderer
 from app.generation.import_generator import ImportGenerator
@@ -32,9 +33,17 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     """Generate Terraform HCL code from discovered resources."""
     from app.services.persistence import audit, record_job
 
-    result = get_job_results(request.job_id)
-    if not result:
-        raise HTTPException(status_code=404, detail=f"Job '{request.job_id}' not found")
+    result = None
+    if request.provider == "aws":
+        aws_result = get_aws_job_results(request.job_id)
+        if not aws_result:
+            raise HTTPException(status_code=404, detail=f"AWS job '{request.job_id}' not found")
+        from types import SimpleNamespace
+        result = SimpleNamespace(resources=aws_result.get("resources", []))
+    else:
+        result = get_job_results(request.job_id)
+        if not result:
+            raise HTTPException(status_code=404, detail=f"GCP job '{request.job_id}' not found")
 
     if not result.resources:
         raise HTTPException(status_code=400, detail="No resources found in this job")
@@ -50,7 +59,10 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
     # Generate provider.tf
     if request.options.include_provider_block:
         projects = list({r.project for r in resources})
-        provider_content = _renderer.render_provider(projects[0] if projects else "")
+        provider_content = _renderer.render_provider(
+            projects[0] if projects else "",
+            cloud_provider=request.provider,
+        )
         files.append(GeneratedFile(filename="provider.tf", content=provider_content))
 
     # Generate backend.tf if state config provided
@@ -139,7 +151,7 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
         "style": request.options.generation_style.value,
         "ai_clean": request.options.ai_clean,
     })
-    record_job(request.job_id, "generation", "gcp", "completed", {"resources": len(resources), "files": len(formatted_files)})
+    record_job(request.job_id, "generation", request.provider, "completed", {"resources": len(resources), "files": len(formatted_files)})
 
     # Save to generation history for later retrieval
     import uuid as _uuid
@@ -165,11 +177,19 @@ async def generate_terraform(request: GenerationRequest) -> GenerationResult:
 
 
 @router.get("/generate/download/{job_id}")
-async def download_terraform(job_id: str) -> StreamingResponse:
+async def download_terraform(job_id: str, provider: str = "gcp") -> StreamingResponse:
     """Download generated Terraform files as a ZIP archive."""
-    result = get_job_results(job_id)
-    if not result:
-        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    result = None
+    if provider == "aws":
+        aws_result = get_aws_job_results(job_id)
+        if not aws_result:
+            raise HTTPException(status_code=404, detail=f"AWS job '{job_id}' not found")
+        from types import SimpleNamespace
+        result = SimpleNamespace(resources=aws_result.get("resources", []))
+    else:
+        result = get_job_results(job_id)
+        if not result:
+            raise HTTPException(status_code=404, detail=f"GCP job '{job_id}' not found")
 
     if not result.resources:
         raise HTTPException(status_code=400, detail="No resources found in this job")
