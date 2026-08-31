@@ -176,7 +176,8 @@ function StateVizContent() {
             }`}
           >
             <Upload className={`h-6 w-6 mx-auto mb-2 ${dragOver ? "text-violet-500" : "text-gray-400"}`} />
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Drop .tf files</p>
+            <p className="text-xs font-medium">Drop .tf files</p>
+            <p className="text-[11px] text-muted-foreground mt-1">backend.tf is not needed for graph visualization</p>
             <input ref={fileInputRef} type="file" multiple accept=".tf" onChange={(e) => e.target.files && processFiles(e.target.files)} className="hidden" />
           </div>
 

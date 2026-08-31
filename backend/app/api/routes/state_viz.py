@@ -119,8 +119,10 @@ async def get_state_graph(request: StateVizRequest) -> dict:
     work_dir = tempfile.mkdtemp(prefix="terramorph-graph-")
 
     try:
-        # Write files
+        # Write files (skip backend.tf — not needed for graph, causes init issues)
         for filename, content in request.tf_files.items():
+            if filename.lower() == "backend.tf":
+                continue
             with open(os.path.join(work_dir, filename), "w") as f:
                 f.write(content)
 
